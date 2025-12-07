@@ -1,0 +1,359 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTastingBoard – NFC zuordnen</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – NFC zuordnen</span>
+    </div>
+    <nav class="navbar-right">
+        <ul class="nav-list">
+            <li><a href="index.html">Start</a></li>
+            <li><a href="board.html">Board</a></li>
+            <li><a href="lieferant.html">Lieferanten</a></li>
+            <li><a href="artikel.html">Artikel</a></li>
+            <li><a href="kategorien.html">Kategorien</a></li>
+            <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="nfc_zuordnen.html" class="active">NFC zuordnen</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="main-layout">
+
+    <!-- Linke Seite: Auswahl -->
+    <div class="form-wrapper">
+        <h1>NFC-Code einem Artikel zuordnen</h1>
+
+        <p>
+            <strong>Gescannter NFC-Code:</strong>
+            <span id="codeView">–</span>
+        </p>
+
+        <p class="form-hint">
+            Wähle zuerst den Lieferanten, dann optional eine Kategorie.
+            Anschließend kannst du unten einen Artikel anklicken, um ihn mit diesem NFC-Code zu verknüpfen.
+        </p>
+
+        <form id="filterForm" class="article-form">
+            <div class="field-group">
+                <label for="lieferantSelect"><strong>Lieferant (UID):</strong></label>
+                <select id="lieferantSelect">
+                    <option value="">-- bitte wählen --</option>
+                </select>
+            </div>
+
+            <div class="field-group">
+                <label for="kategorieSelect"><strong>Kategorie (optional):</strong></label>
+                <select id="kategorieSelect">
+                    <option value="">-- alle Kategorien --</option>
+                </select>
+            </div>
+        </form>
+
+        <p id="status"></p>
+    </div>
+
+    <!-- Rechte Seite: Artikelliste -->
+    <div class="list-wrapper">
+        <h2>Artikel-Auswahl</h2>
+        <p class="hint">
+            Artikel werden nach gewähltem Lieferanten (und ggf. Kategorie) gefiltert.
+            Klicke auf einen Artikel, um den NFC-Code zuzuordnen.
+        </p>
+
+        <div class="list-head">
+            <span>ArtikelID</span>
+            <span>Bezeichnung</span>
+            <span>EAN</span>
+        </div>
+
+        <ul id="artikelListe">
+            <li>(Bitte zuerst einen Lieferanten wählen)</li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Bestätigungs-Box unten rechts -->
+<div id="confirmBox" class="confirm-box hidden">
+    <div id="confirmBoxText"></div>
+    <div class="confirm-box-buttons">
+        <button type="button" id="btnAnother">Weitere Zuordnung</button>
+        <button type="button" id="btnGoArtikel" class="btn-secondary">Zur Artikelverwaltung</button>
+    </div>
+</div>
+
+<script type="module">
+    // -*- coding: utf-8 -*-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc,
+        collection,
+        getDocs,
+        query,
+        where
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    let db = null;
+    let currentNfcCode = null;
+    let allArtikelForLieferant = []; // Cache der geladenen Artikel
+
+    function getQueryParam(name) {
+        return new URLSearchParams(window.location.search).get(name);
+    }
+
+    async function main() {
+        const statusEl = document.getElementById("status");
+        const codeView = document.getElementById("codeView");
+
+        currentNfcCode = getQueryParam("code");
+        codeView.textContent = currentNfcCode ?? "–";
+
+        try {
+            const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+
+            await loadLieferanten();
+            await loadKategorien();
+
+            const lieferantSelect = document.getElementById("lieferantSelect");
+            const kategorieSelect = document.getElementById("kategorieSelect");
+
+            lieferantSelect.addEventListener("change", onFilterChange);
+            kategorieSelect.addEventListener("change", onFilterChange);
+
+            // Buttons der Bestätigungsbox
+            const btnAnother = document.getElementById("btnAnother");
+            const btnGoArtikel = document.getElementById("btnGoArtikel");
+
+            btnAnother.addEventListener("click", () => {
+                document.getElementById("confirmBox").classList.add("hidden");
+                statusEl.textContent = "Bereit für eine weitere Zuordnung.";
+            });
+
+            btnGoArtikel.addEventListener("click", () => {
+                window.location.href = "artikel.html";
+            });
+
+            statusEl.textContent = currentNfcCode
+                ? "Bereit. Bitte Lieferant und ggf. Kategorie wählen."
+                : "Kein NFC-Code in der URL gefunden. (Parameter ?code=...)";
+        } catch (err) {
+            console.error(err);
+            document.getElementById("status").textContent =
+                "Fehler beim Initialisieren: " + (err.message ?? err);
+        }
+    }
+
+    async function loadLieferanten() {
+        const select = document.getElementById("lieferantSelect");
+        select.innerHTML = '<option value="">-- bitte wählen --</option>';
+
+        try {
+            const snap = await getDocs(collection(db, "Lieferanten"));
+
+            if (snap.empty) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "(keine Lieferanten gefunden)";
+                select.appendChild(opt);
+                return;
+            }
+
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const opt = document.createElement("option");
+                opt.value = docSnap.id; // UID = Dokument-ID
+                opt.textContent = data.Name || docSnap.id;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error("Lieferanten laden fehlgeschlagen", err);
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "(Fehler beim Laden)";
+            select.appendChild(opt);
+        }
+    }
+
+    async function loadKategorien() {
+        const select = document.getElementById("kategorieSelect");
+        select.innerHTML = '<option value="">-- alle Kategorien --</option>';
+
+        try {
+            const snap = await getDocs(collection(db, "Kategorien"));
+
+            if (snap.empty) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "(keine Kategorien gefunden)";
+                select.appendChild(opt);
+                return;
+            }
+
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const opt = document.createElement("option");
+                opt.value = data.Name || docSnap.id;
+                opt.textContent = data.Name || docSnap.id;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error("Kategorien laden fehlgeschlagen", err);
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "(Fehler beim Laden)";
+            select.appendChild(opt);
+        }
+    }
+
+    async function onFilterChange() {
+        const lieferantUid = document.getElementById("lieferantSelect").value;
+        const kategorie    = document.getElementById("kategorieSelect").value;
+        const statusEl     = document.getElementById("status");
+
+        if (!lieferantUid) {
+            renderArtikelListe([], "Bitte zuerst einen Lieferanten wählen.");
+            return;
+        }
+
+        statusEl.textContent = "Artikel werden geladen...";
+
+        try {
+            // Artikel nach Lieferant filtern (Server-Seite)
+            const q = query(collection(db, "Artikel"), where("LieferantUID", "==", lieferantUid));
+            const snap = await getDocs(q);
+
+            allArtikelForLieferant = [];
+            snap.forEach(docSnap => {
+                allArtikelForLieferant.push({
+                    id: docSnap.id,
+                    ...docSnap.data()
+                });
+            });
+
+            // Jetzt optional nach Kategorie filtern (Client-Seite)
+            const filtered = filterArtikelByKategorie(allArtikelForLieferant, kategorie);
+
+            renderArtikelListe(filtered,
+                filtered.length === 0
+                    ? "Keine Artikel für diese Auswahl gefunden."
+                    : "");
+            statusEl.textContent = "Artikel geladen.";
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "Fehler beim Laden der Artikel: " + (err.message ?? err);
+            renderArtikelListe([], "(Fehler beim Laden der Artikel)");
+        }
+    }
+
+    function filterArtikelByKategorie(artikelListe, kategorie) {
+        if (!kategorie) return artikelListe;
+
+        return artikelListe.filter(a => {
+            const kats = Array.isArray(a.Kategorien) ? a.Kategorien : [];
+            return kats.includes(kategorie);
+        });
+    }
+
+    function renderArtikelListe(artikelListe, emptyText) {
+        const ul = document.getElementById("artikelListe");
+        ul.innerHTML = "";
+
+        if (!artikelListe || artikelListe.length === 0) {
+            const li = document.createElement("li");
+            li.textContent = emptyText || "(Keine Artikel gefunden)";
+            ul.appendChild(li);
+            return;
+        }
+
+        artikelListe.forEach(a => {
+            const li = document.createElement("li");
+            const row = document.createElement("div");
+            row.className = "list-row";
+
+            const colId = document.createElement("span");
+            colId.className = "list-col-uid";
+            colId.textContent = a.ArtikelID || a.id;
+
+            const colBez = document.createElement("span");
+            colBez.className = "list-col-name";
+            colBez.textContent = a.ArtikelBez || "(ohne Bezeichnung)";
+
+            const colEan = document.createElement("span");
+            colEan.className = "list-col-firma";
+            colEan.textContent = a.EAN || "";
+
+            row.appendChild(colId);
+            row.appendChild(colBez);
+            row.appendChild(colEan);
+            li.appendChild(row);
+
+            li.addEventListener("click", () => {
+                onArtikelSelected(a);
+            });
+
+            ul.appendChild(li);
+        });
+    }
+
+    async function onArtikelSelected(artikel) {
+        const statusEl = document.getElementById("status");
+        const lieferantUid = document.getElementById("lieferantSelect").value;
+
+        if (!currentNfcCode) {
+            statusEl.textContent = "Kein NFC-Code in der URL – Zuordnung kann nicht gespeichert werden.";
+            return;
+        }
+
+        if (!lieferantUid) {
+            statusEl.textContent = "Bitte zuerst einen Lieferanten auswählen.";
+            return;
+        }
+
+        try {
+            statusEl.textContent = "Speichere NFC-Zuordnung...";
+
+            await setDoc(doc(db, "NFCCode", currentNfcCode), {
+                ArtikelID: artikel.ArtikelID || artikel.id,
+                LieferantUID: lieferantUid
+            }, { merge: true });
+
+            const artikelName = artikel.ArtikelBez || artikel.ArtikelID || artikel.id;
+
+            statusEl.textContent = "NFC-Code " + currentNfcCode +
+                " wurde Artikel \"" + artikelName + "\" zugeordnet.";
+
+            const confirmBox = document.getElementById("confirmBox");
+            const confirmText = document.getElementById("confirmBoxText");
+            confirmText.textContent = "NFC-Code " + currentNfcCode +
+                " wurde dem Artikel \"" + artikelName + "\" erfolgreich zugeordnet.";
+            confirmBox.classList.remove("hidden");
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "Fehler beim Speichern der Zuordnung: " + (err.message ?? err);
+        }
+    }
+
+    main();
+</script>
+
+</body>
+</html>

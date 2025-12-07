@@ -1,0 +1,646 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTastingBoard – Lieferanten verwalten</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – Lieferanten</span>
+    </div>
+    <nav class="navbar-right">
+        <ul class="nav-list">
+            <li><a href="index.html">Start</a></li>
+            <li><a href="lieferant.html" class="active">Lieferanten</a></li>
+            <li><a href="artikel.html">Artikel</a></li>
+            <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="board.html">Board</a></li>
+            <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
+            <li><a href="kategorien.html">Kategorien</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="main-layout">
+
+    <!-- Liste der Lieferanten -->
+    <div class="list-wrapper">
+        <h2>Lieferanten-Liste</h2>
+        <p class="hint">Klicke auf einen Eintrag, um ihn zu bearbeiten.</p>
+
+        <div class="list-head">
+            <span>UID</span>
+            <span>Name</span>
+            <span>Firmenname</span>
+        </div>
+
+        <ul id="lieferantenListe">
+            <li>(Lade Lieferanten...)</li>
+        </ul>
+
+        <button id="btnNeu" type="button">Neuen Lieferanten anlegen</button>
+    </div>
+
+    <!-- Formular + EAN-Bereiche -->
+    <div class="form-wrapper">
+        <h2>Lieferant bearbeiten / anlegen</h2>
+
+        <form id="lieferantForm">
+
+            <!-- Oberer 3-Spalten-Block: UID + ID + Anzeigename -->
+            <div class="form-grid-3">
+
+                <!-- Spalte 1: UID + Betriebsnummer (unterhalb) -->
+                <div>
+                    <p>
+                        <label for="uid"><strong>UID (8 Zeichen, Dokument-ID):</strong></label>
+                        <input type="text" id="uid" maxlength="8">
+                    </p>
+                    <p>
+                        <label for="betriebsnummer"><strong>Betriebsnummer:</strong></label>
+                        <input type="text" id="betriebsnummer" placeholder="Alternative zur UID">
+                    </p>
+                    <p class="form-hint-small">
+                        Mindestens UID oder Betriebsnummer muss ausgefüllt sein.
+                    </p>
+                </div>
+
+                <!-- Spalte 2: Anzeigename -->
+                <div>
+                    <p>
+                        <label for="name"><strong>Anzeigename / Kurzname:</strong></label>
+                        <input type="text" id="name" required>
+                    </p>
+                </div>
+
+                <!-- Spalte 3: Firestore ID (read-only Feld) -->
+                <div>
+                    <p>
+                        <label for="docId"><strong>ID (Firestore Dokument-ID):</strong></label>
+                        <input type="text" id="docId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
+                    </p>
+                </div>
+            </div>
+
+            <!-- Unterer 3-Spalten-Block -->
+            <div class="form-grid-3">
+
+                <!-- Spalte 1: Firmendaten -->
+                <div>
+                    <h3>Firmendaten</h3>
+
+                    <p>
+                        <label for="firmenname"><strong>Firmenname:</strong></label>
+                        <input type="text" id="firmenname">
+                    </p>
+
+                    <p>
+                        <label for="strasse"><strong>Straße / Hausnummer:</strong></label>
+                        <input type="text" id="strasse">
+                    </p>
+
+                    <p>
+                        <label for="plz"><strong>PLZ:</strong></label>
+                        <input type="text" id="plz">
+                    </p>
+
+                    <p>
+                        <label for="ort"><strong>Ort:</strong></label>
+                        <input type="text" id="ort">
+                    </p>
+
+                    <p>
+                        <label for="land"><strong>Land:</strong></label>
+                        <input type="text" id="land" value="Österreich">
+                    </p>
+
+                    <p>
+                        <label for="eanMinLieferant"><strong>EAN Min:</strong></label>
+                        <input type="text" id="eanMinLieferant" placeholder="z. B. 9001200000000">
+                    </p>
+
+                    <p>
+                        <label for="eanMaxLieferant"><strong>EAN Max (optional):</strong></label>
+                        <input type="text" id="eanMaxLieferant" placeholder="z. B. 9001299999999">
+                    </p>
+
+                    <button type="button" id="btnAddEanRange" class="btn-add-ean">EAN-Bereich hinzufügen</button>
+                </div>
+
+                <!-- Spalte 2: Kontakt + Notizen -->
+                <div>
+                    <h3>Kontakt</h3>
+
+                    <p>
+                        <label for="telefon"><strong>Telefon:</strong></label>
+                        <input type="tel" id="telefon">
+                    </p>
+
+                    <p>
+                        <label for="email"><strong>E-Mail:</strong></label>
+                        <input type="email" id="email">
+                    </p>
+
+                    <p>
+                        <label for="website"><strong>Webseite:</strong></label>
+                        <input type="url" id="website">
+                    </p>
+
+                    <p>
+                        <label for="notizen"><strong>Sonstiges:</strong></label>
+                        <textarea id="notizen" rows="4" placeholder="Zusätzliche Anmerkungen…"></textarea>
+                    </p>
+                </div>
+
+                <!-- Spalte 3: Kategorien -->
+                <div>
+                    <h3>&nbsp;</h3>
+
+                    <p>
+                        <label for="kategorienContainer"><strong>Kategorien:</strong></label>
+                        <div id="kategorienContainer">
+                            (Lade Kategorien...)
+                        </div>
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- EAN-Bereiche über Spalte 1 und 2 -->
+            <div class="ean-bereiche-container">
+                <div class="ean-bereiche-inner">
+                    <div class="list-head-2">
+                        <span>EAN Min</span>
+                        <span>EAN Max</span>
+                    </div>
+                    <ul id="eanListe">
+                        <li>(Kein Lieferant ausgewählt)</li>
+                    </ul>
+                </div>
+                <div></div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-save-lieferant">Lieferant speichern</button>
+            </div>
+        </form>
+
+        <p id="status"></p>
+    </div>
+
+</div>
+
+<script type="module">
+    // -*- coding: utf-8 -*-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc,
+        collection,
+        getDocs,
+        query,
+        where,
+        addDoc
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    let db = null;
+
+    async function main() {
+        const status = document.getElementById("status");
+        const btnNeu = document.getElementById("btnNeu");
+        const btnAddEan = document.getElementById("btnAddEanRange");
+        const docIdInput = document.getElementById("docId");
+
+        try {
+            const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+
+            await loadKategorien();
+            await loadLieferantenListe();
+
+            const form = document.getElementById("lieferantForm");
+            form.addEventListener("submit", onSaveLieferant);
+
+            btnNeu.addEventListener("click", () => {
+                clearForm();
+                clearEanList();
+            });
+
+            btnAddEan.addEventListener("click", onAddEanRange);
+            // No ID copy button or save-as-new; keep minimal wiring
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Initialisieren: " + (err.message ?? err);
+        }
+    }
+
+    async function loadKategorien() {
+        const container = document.getElementById("kategorienContainer");
+        container.textContent = "Lade Kategorien...";
+
+        try {
+            const snap = await getDocs(collection(db, "Kategorien"));
+
+            if (snap.empty) {
+                container.textContent = "(Keine Kategorien in 'Kategorien' gefunden)";
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const labelText = data.Name || docSnap.id;
+
+                const label = document.createElement("label");
+                label.className = "kategorie-label";
+
+                const cb = document.createElement("input");
+                cb.type = "checkbox";
+                cb.value = labelText;
+
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(labelText));
+
+                fragment.appendChild(label);
+            });
+
+            container.innerHTML = "";
+            container.appendChild(fragment);
+
+        } catch (err) {
+            console.error("Fehler beim Laden der Kategorien:", err);
+            container.textContent = "(Fehler beim Laden der Kategorien)";
+        }
+    }
+
+    async function loadLieferantenListe() {
+        const ul = document.getElementById("lieferantenListe");
+        ul.innerHTML = "";
+        const loadingLi = document.createElement("li");
+        loadingLi.textContent = "(Lade Lieferanten...)";
+        ul.appendChild(loadingLi);
+
+        try {
+            const snap = await getDocs(collection(db, "Lieferanten"));
+
+            if (snap.empty) {
+                ul.innerHTML = "";
+                const li = document.createElement("li");
+                li.textContent = "(Keine Lieferanten gefunden)";
+                ul.appendChild(li);
+                return;
+            }
+
+            ul.innerHTML = "";
+
+            const items = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                items.push({
+                    id: docSnap.id,
+                    uid: data.UID || docSnap.id,
+                    name: (data.Name || "").toString(),
+                    firma: data.Firmenname || ""
+                });
+            });
+
+            items.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+
+            items.forEach(({ id: firestoreId, uid, name, firma }) => {
+                const li = document.createElement("li");
+                const row = document.createElement("div");
+                row.className = "list-row";
+
+                const colUid = document.createElement("span");
+                colUid.className = "list-col-uid";
+                colUid.textContent = uid;
+
+                const colName = document.createElement("span");
+                colName.className = "list-col-name";
+                colName.textContent = name;
+
+                const colFirma = document.createElement("span");
+                colFirma.className = "list-col-firma";
+                colFirma.textContent = firma;
+
+                row.appendChild(colUid);
+                row.appendChild(colName);
+                row.appendChild(colFirma);
+                li.appendChild(row);
+
+                li.addEventListener("click", () => {
+                    loadLieferantInForm(firestoreId);
+                });
+
+                ul.appendChild(li);
+            });
+
+        } catch (err) {
+            console.error("Fehler beim Laden der Lieferanten:", err);
+            ul.innerHTML = "";
+            const li = document.createElement("li");
+            li.textContent = "(Fehler beim Laden der Lieferanten)";
+            ul.appendChild(li);
+        }
+    }
+
+    async function loadLieferantInForm(uid) {
+        const status = document.getElementById("status");
+
+        try {
+            // Use Firestore document ID, not UID
+            const ref = doc(db, "Lieferanten", uid);
+            const snap = await getDoc(ref);
+
+            if (!snap.exists()) {
+                status.textContent = "Lieferant mit ID " + uid + " nicht gefunden.";
+                clearEanList();
+                return;
+            }
+
+            const data = snap.data();
+
+            // Store Firestore ID in the form for future updates
+            const form = document.getElementById("lieferantForm");
+            form.setAttribute("data-docid", uid);
+
+            // Populate Firestore ID field
+            const docIdInput = document.getElementById("docId");
+            if (docIdInput) {
+                docIdInput.value = uid;
+            }
+
+            document.getElementById("uid").value        = data.UID || "";
+            document.getElementById("name").value       = data.Name || "";
+            document.getElementById("betriebsnummer").value = data.Betriebsnummer || "";
+            document.getElementById("firmenname").value = data.Firmenname || "";
+            document.getElementById("strasse").value    = data.Strasse || "";
+            document.getElementById("plz").value        = data.PLZ || "";
+            document.getElementById("ort").value        = data.Ort || "";
+            document.getElementById("land").value       = data.Land || "";
+            document.getElementById("telefon").value    = data.Telefon || "";
+            document.getElementById("email").value      = data.Email || "";
+            document.getElementById("website").value    = data.Website || "";
+            document.getElementById("notizen").value    = data.Notizen || "";
+
+            const kategorien = Array.isArray(data.Kategorien) ? data.Kategorien : [];
+
+            document
+                .querySelectorAll("#kategorienContainer input[type='checkbox']")
+                .forEach(cb => {
+                    cb.checked = kategorien.includes(cb.value);
+                });
+
+            await loadEanRangesFor(uid);
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Laden des Lieferanten: " + (err.message ?? err);
+            clearEanList();
+        }
+    }
+
+    function clearForm() {
+        const form = document.getElementById("lieferantForm");
+        form.reset();
+        form.removeAttribute("data-docid");
+        document
+            .querySelectorAll("#kategorienContainer input[type='checkbox']")
+            .forEach(cb => { cb.checked = false; });
+        // Clear Firestore ID field
+        const docIdInput = document.getElementById("docId");
+        if (docIdInput) docIdInput.value = "";
+    }
+
+    function clearEanList() {
+        const ul = document.getElementById("eanListe");
+        ul.innerHTML = "";
+        const li = document.createElement("li");
+        li.textContent = "(Noch keine EAN-Bereiche für diesen Lieferanten)";
+        ul.appendChild(li);
+    }
+
+    async function onSaveLieferant(e) {
+        e.preventDefault();
+        const status = document.getElementById("status");
+
+        const uid        = document.getElementById("uid").value.trim();
+        const name       = document.getElementById("name").value.trim();
+        const betriebsnummer = document.getElementById("betriebsnummer").value.trim();
+        const firmenname = document.getElementById("firmenname").value.trim();
+        const strasse    = document.getElementById("strasse").value.trim();
+        const plz        = document.getElementById("plz").value.trim();
+        const ort        = document.getElementById("ort").value.trim();
+        const land       = document.getElementById("land").value.trim();
+        const telefon    = document.getElementById("telefon").value.trim();
+        const email      = document.getElementById("email").value.trim();
+        const website    = document.getElementById("website").value.trim();
+        const notizen    = document.getElementById("notizen").value.trim();
+
+        if (!name) {
+            status.textContent = "Anzeigename / Kurzname darf nicht leer sein.";
+            return;
+        }
+
+        const kategorien = [];
+        document
+            .querySelectorAll("#kategorienContainer input[type='checkbox']:checked")
+            .forEach(cb => kategorien.push(cb.value));
+
+        try {
+            status.textContent = "Speichere Lieferant...";
+
+            let docId = document.getElementById("lieferantForm").getAttribute("data-docid");
+            let lieferantData = {
+                UID: uid || null,
+                Name: name,
+                Betriebsnummer: betriebsnummer || null,
+                Kategorien: kategorien,
+                Firmenname: firmenname || null,
+                Strasse: strasse || null,
+                PLZ: plz || null,
+                Ort: ort || null,
+                Land: land || null,
+                Telefon: telefon || null,
+                Email: email || null,
+                Website: website || null,
+                Notizen: notizen || null
+            };
+
+            if (!docId) {
+                // New supplier: use Firestore auto-ID
+                const docRef = await addDoc(collection(db, "Lieferanten"), lieferantData);
+                docId = docRef.id;
+                const form = document.getElementById("lieferantForm");
+                form.setAttribute("data-docid", docId);
+                // Populate Firestore ID field
+                const docIdInput = document.getElementById("docId");
+                if (docIdInput) {
+                    docIdInput.value = docId;
+                }
+            } else {
+                // Existing supplier: update by Firestore ID
+                const ref = doc(db, "Lieferanten", docId);
+                await setDoc(ref, lieferantData, { merge: true });
+                // Populate Firestore ID field
+                const docIdInput = document.getElementById("docId");
+                if (docIdInput) {
+                    docIdInput.value = docId;
+                }
+            }
+
+            status.textContent = "Lieferant erfolgreich gespeichert.";
+            await loadLieferantenListe();
+            await loadEanRangesFor(docId);
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Speichern: " + (err.message ?? err);
+        }
+    }
+
+    // Removed onSaveLieferantAsNew: Save-as-new button no longer exists
+
+    async function loadEanRangesFor(uid) {
+        const ul = document.getElementById("eanListe");
+        ul.innerHTML = "";
+        const loadingLi = document.createElement("li");
+        loadingLi.textContent = "(Lade EAN-Bereiche...)";
+        ul.appendChild(loadingLi);
+
+        try {
+            const q = query(collection(db, "EANHersteller"), where("UID", "==", uid));
+            const snap = await getDocs(q);
+
+            if (snap.empty) {
+                clearEanList();
+                return;
+            }
+
+            ul.innerHTML = "";
+
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const eanMin = data.EANMin || docSnap.id;
+                const eanMax = data.EANMax || "";
+
+                const li = document.createElement("li");
+                const row = document.createElement("div");
+                row.className = "list-row-2";
+
+                const colMin = document.createElement("span");
+                colMin.className = "cat-col-id";
+                colMin.textContent = eanMin;
+
+                const colMax = document.createElement("span");
+                colMax.className = "cat-col-name";
+                colMax.textContent = eanMax || "—";
+
+                row.appendChild(colMin);
+                row.appendChild(colMax);
+                li.appendChild(row);
+                ul.appendChild(li);
+            });
+
+        } catch (err) {
+            console.error("Fehler beim Laden der EAN-Bereiche:", err);
+            ul.innerHTML = "";
+            const li = document.createElement("li");
+            li.textContent = "(Fehler beim Laden der EAN-Bereiche)";
+            ul.appendChild(li);
+        }
+    }
+
+    async function onAddEanRange() {
+        const status = document.getElementById("status");
+        const uid = document.getElementById("uid").value.trim();
+        const name = document.getElementById("name").value.trim();
+        const eanMinRaw = document.getElementById("eanMinLieferant").value.trim();
+        const eanMaxRaw = document.getElementById("eanMaxLieferant").value.trim();
+
+        if (!uid) {
+            status.textContent = "Bitte zuerst einen Lieferanten speichern / auswählen (UID erforderlich).";
+            return;
+        }
+
+        if (!eanMinRaw) {
+            status.textContent = "EAN Min ist ein Pflichtfeld.";
+            return;
+        }
+
+        const eanMinDigits = eanMinRaw.replace(/\D/g, "");
+        const eanMaxDigits = eanMaxRaw ? eanMaxRaw.replace(/\D/g, "") : "";
+
+        if (eanMinDigits.length < 6) {
+            status.textContent = "EAN Min muss mindestens 6 Ziffern enthalten.";
+            return;
+        }
+
+        try {
+            status.textContent = "Speichere EAN-Bereich...";
+
+            const ref = doc(db, "EANHersteller", eanMinDigits);
+            await setDoc(ref, {
+                UID: uid,
+                LieferantName: name || uid,
+                EANMin: eanMinDigits,
+                EANMax: eanMaxDigits || null
+            }, { merge: true });
+
+            status.textContent = "EAN-Bereich gespeichert.";
+            document.getElementById("eanMinLieferant").value = "";
+            document.getElementById("eanMaxLieferant").value = "";
+
+            await loadEanRangesFor(uid);
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Speichern des EAN-Bereichs: " + (err.message ?? err);
+        }
+    }
+
+    function onCopyDocId() {
+        const status = document.getElementById("status");
+        const docIdBtn = document.getElementById("docIdBtn");
+        const value = docIdBtn && docIdBtn.dataset && docIdBtn.dataset.value ? docIdBtn.dataset.value.trim() : "";
+        if (!value) {
+            status.textContent = "Keine ID vorhanden zum Kopieren.";
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(value)
+                .then(() => { status.textContent = "ID in die Zwischenablage kopiert."; })
+                .catch(err => { status.textContent = "Kopieren fehlgeschlagen: " + (err.message ?? err); });
+        } else {
+            try {
+                const ta = document.createElement("textarea");
+                ta.value = value;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                status.textContent = "ID in die Zwischenablage kopiert.";
+            } catch (err) {
+                status.textContent = "Kopieren fehlgeschlagen: " + (err.message ?? err);
+            }
+        }
+    }
+
+    main();
+</script>
+
+</body>
+</html>

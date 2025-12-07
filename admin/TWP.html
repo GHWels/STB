@@ -1,0 +1,50 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Thomas Weinprojekt</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <style>
+        body {
+            background-color: #f7f2c4; /* Chardonnay Weißweinfarbe */
+            color: #2a1f14;           /* Sehr dunkles Braungrau für guten Kontrast */
+            margin: 0;
+            padding: 1rem;
+            font-family: Arial, sans-serif;
+        }
+
+        h1, h2 {
+            color: #2a1f14;
+        }   
+    </style>
+</head>
+<body>
+    <h1>Artikel-Information</h1>
+
+    <p><strong>Gescanter Code:</strong> <span id="codeView">-</span></p>
+    <p id="infoText"></p>
+
+    <script>
+        // -*- coding: utf-8 -*-
+        // Liest einen Parameter aus der URL, z.B. ?code=ABC123
+        function getQueryParam(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name);
+        }
+
+        const code = getQueryParam("code");
+        const codeView = document.getElementById("codeView");
+        const infoText = document.getElementById("infoText");
+
+        if (code) {
+            codeView.textContent = code;
+            infoText.textContent = "Der Code wurde erfolgreich aus der URL gelesen. Später holen wir damit die Artikeldaten aus Firestore.";
+        } else {
+            infoText.textContent = "Kein Code übergeben. Füge in der URL z. B. ?code=ABC123 hinzu.";
+        }
+    </script>
+</body>
+</html>

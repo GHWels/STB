@@ -1,0 +1,317 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTastingBoard – Bewertung</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – Bewertung</span>
+    </div>
+    <nav class="navbar-right">
+        <ul class="nav-list">
+            <li><a href="index.html">Start</a></li>
+            <li><a href="board.html">Board</a></li>
+            <li><a href="lieferant.html">Lieferanten</a></li>
+            <li><a href="artikel.html">Artikel</a></li>
+            <li><a href="kategorien.html">Kategorien</a></li>
+            <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
+            <li><a href="bewertung.html" class="active">Bewertung</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="main-layout">
+
+    <!-- Linke Seite: NFC-Code Anzeige -->
+    <div class="form-wrapper">
+        <h1>Artikel bewerten</h1>
+
+        <input type="hidden" id="nfcInput">
+
+        <div class="field-group">
+            <label><strong>NFC-Code:</strong></label>
+            <p id="nfcCodeDisplay" class="nfc-code-display">–</p>
+        </div>
+
+        <p id="status"></p>
+
+        <div id="artikelInfo" class="hidden">
+            <h3>Artikel-Information</h3>
+            <p><strong>Artikel-ID:</strong> <span id="infoArtikelID">–</span></p>
+            <p><strong>Bezeichnung:</strong> <span id="infoBezeichnung">–</span></p>
+            <p><strong>Lieferant:</strong> <span id="infoLieferant">–</span></p>
+            <p><strong>Kategorien:</strong> <span id="infoKategorien">–</span></p>
+        </div>
+
+        <button type="button" id="btnReset" class="btn-secondary">Zurücksetzen</button>
+    </div>
+
+    <!-- Rechte Seite: Bewertungsformular -->
+    <div class="list-wrapper">
+        <h2>Bewertung abgeben</h2>
+        
+        <div id="bewertungForm" class="hidden">
+            <form id="ratingForm" class="article-form">
+                
+                <div class="field-group">
+                    <label for="sterneBewertung"><strong>Sterne-Bewertung:</strong></label>
+                    <select id="sterneBewertung" required>
+                        <option value="">-- Bitte wählen --</option>
+                        <option value="5">⭐⭐⭐⭐⭐ (5 Sterne)</option>
+                        <option value="4">⭐⭐⭐⭐ (4 Sterne)</option>
+                        <option value="3">⭐⭐⭐ (3 Sterne)</option>
+                        <option value="2">⭐⭐ (2 Sterne)</option>
+                        <option value="1">⭐ (1 Stern)</option>
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="kommentar"><strong>Kommentar (optional):</strong></label>
+                    <textarea id="kommentar" rows="5" placeholder="Ihre Meinung zum Artikel..."></textarea>
+                </div>
+
+                <div class="field-group">
+                    <label for="kundenName"><strong>Ihr Name (optional):</strong></label>
+                    <input type="text" id="kundenName" placeholder="z.B. Max Mustermann">
+                </div>
+
+                <button type="submit" class="btn-primary">Bewertung speichern</button>
+            </form>
+        </div>
+
+        <div id="warningMessage" class="hint">
+            <p>Bitte scannen Sie zuerst einen NFC-Code, um eine Bewertung abzugeben.</p>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    // -*- coding: utf-8 -*-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        getFirestore,
+        doc,
+        getDoc,
+        collection,
+        addDoc,
+        query,
+        where,
+        getDocs,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    let db = null;
+    let currentArtikelData = null;
+
+    async function main() {
+        const statusEl = document.getElementById("status");
+        const btnReset = document.getElementById("btnReset");
+        const nfcInput = document.getElementById("nfcInput");
+        const ratingForm = document.getElementById("ratingForm");
+
+        try {
+            const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+
+            statusEl.textContent = "Bereit zum Scannen.";
+
+            btnReset.addEventListener("click", onReset);
+            ratingForm.addEventListener("submit", onSubmitRating);
+
+            // NFC-Code aus URL-Parameter auslesen
+            const urlParams = new URLSearchParams(window.location.search);
+            const nfcCodeFromUrl = urlParams.get('nfc');
+            
+            if (nfcCodeFromUrl) {
+                nfcInput.value = nfcCodeFromUrl;
+                // Automatisch scannen
+                await onScanCode();
+            } else {
+                statusEl.textContent = "❌ Kein NFC-Code übergeben. Bitte URL mit ?nfc=CODE aufrufen.";
+            }
+
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "Fehler beim Initialisieren: " + (err.message ?? err);
+        }
+    }
+
+    async function onScanCode() {
+        const nfcInput = document.getElementById("nfcInput");
+        const nfcCodeDisplay = document.getElementById("nfcCodeDisplay");
+        const statusEl = document.getElementById("status");
+        const artikelInfo = document.getElementById("artikelInfo");
+        const bewertungForm = document.getElementById("bewertungForm");
+        const warningMessage = document.getElementById("warningMessage");
+
+        const nfcCode = nfcInput.value.trim();
+
+        if (!nfcCode) {
+            statusEl.textContent = "Bitte einen NFC-Code eingeben.";
+            return;
+        }
+
+        // NFC-Code anzeigen
+        nfcCodeDisplay.textContent = nfcCode;
+        statusEl.textContent = "Lade Artikeldaten...";
+
+        try {
+            // 1. NFC-Zuordnung laden
+            const nfcDocRef = doc(db, "NFCCode", nfcCode);
+            const nfcSnap = await getDoc(nfcDocRef);
+
+            if (!nfcSnap.exists()) {
+                statusEl.textContent = "❌ NFC-Code nicht gefunden oder nicht zugeordnet.";
+                artikelInfo.classList.add("hidden");
+                bewertungForm.classList.add("hidden");
+                warningMessage.classList.remove("hidden");
+                return;
+            }
+
+            const nfcData = nfcSnap.data();
+            const artikelId = nfcData.ArtikelID;
+            const lieferantUid = nfcData.LieferantUID;
+
+            // 2. Artikel laden
+            const artikelQuery = query(
+                collection(db, "Artikel"),
+                where("ArtikelID", "==", artikelId),
+                where("LieferantUID", "==", lieferantUid)
+            );
+            const artikelSnap = await getDocs(artikelQuery);
+
+            if (artikelSnap.empty) {
+                statusEl.textContent = "❌ Artikel nicht gefunden.";
+                artikelInfo.classList.add("hidden");
+                bewertungForm.classList.add("hidden");
+                warningMessage.classList.remove("hidden");
+                return;
+            }
+
+            const artikelDoc = artikelSnap.docs[0];
+            const artikel = artikelDoc.data();
+
+            // 3. Lieferant laden
+            const lieferantDocRef = doc(db, "Lieferanten", lieferantUid);
+            const lieferantSnap = await getDoc(lieferantDocRef);
+            const lieferantName = lieferantSnap.exists() ? lieferantSnap.data().Name : lieferantUid;
+
+            // Daten speichern für spätere Verwendung
+            currentArtikelData = {
+                nfcCode: nfcCode,
+                artikelId: artikelId,
+                lieferantUid: lieferantUid,
+                artikel: artikel,
+                lieferantName: lieferantName
+            };
+
+            // 4. Artikelinfo anzeigen
+            displayArtikelInfo(artikel, lieferantName);
+
+            // 5. Bewertungsformular einblenden
+            artikelInfo.classList.remove("hidden");
+            bewertungForm.classList.remove("hidden");
+            warningMessage.classList.add("hidden");
+            statusEl.textContent = "✅ Artikel geladen. Sie können jetzt eine Bewertung abgeben.";
+
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "Fehler beim Laden: " + (err.message ?? err);
+            artikelInfo.classList.add("hidden");
+            bewertungForm.classList.add("hidden");
+        }
+    }
+
+    function displayArtikelInfo(artikel, lieferantName) {
+        document.getElementById("infoArtikelID").textContent = artikel.ArtikelID || "–";
+        document.getElementById("infoBezeichnung").textContent = artikel.Bezeichnung || "–";
+        document.getElementById("infoLieferant").textContent = lieferantName;
+        
+        const kategorien = Array.isArray(artikel.Kategorien) ? artikel.Kategorien.join(", ") : "–";
+        document.getElementById("infoKategorien").textContent = kategorien;
+    }
+
+    async function onSubmitRating(e) {
+        e.preventDefault();
+
+        const statusEl = document.getElementById("status");
+        const sterneBewertung = document.getElementById("sterneBewertung").value;
+        const kommentar = document.getElementById("kommentar").value.trim();
+        const kundenName = document.getElementById("kundenName").value.trim();
+
+        if (!sterneBewertung) {
+            statusEl.textContent = "❌ Bitte wählen Sie eine Sterne-Bewertung aus.";
+            return;
+        }
+
+        if (!currentArtikelData) {
+            statusEl.textContent = "❌ Kein Artikel geladen.";
+            return;
+        }
+
+        try {
+            statusEl.textContent = "Speichere Bewertung...";
+
+            // Bewertung in Firestore speichern
+            const bewertungData = {
+                NFCCode: currentArtikelData.nfcCode,
+                ArtikelID: currentArtikelData.artikelId,
+                LieferantUID: currentArtikelData.lieferantUid,
+                Sterne: parseInt(sterneBewertung),
+                Kommentar: kommentar || "",
+                KundenName: kundenName || "Anonym",
+                Timestamp: serverTimestamp()
+            };
+
+            await addDoc(collection(db, "Bewertungen"), bewertungData);
+
+            statusEl.textContent = "✅ Bewertung erfolgreich gespeichert!";
+            
+            // Formular zurücksetzen
+            document.getElementById("ratingForm").reset();
+            
+            // Nach 2 Sekunden alles zurücksetzen
+            setTimeout(() => {
+                onReset();
+            }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "❌ Fehler beim Speichern: " + (err.message ?? err);
+        }
+    }
+
+    function onReset() {
+        // Alle Felder zurücksetzen
+        document.getElementById("nfcInput").value = "";
+        document.getElementById("nfcCodeDisplay").textContent = "–";
+        document.getElementById("ratingForm").reset();
+        document.getElementById("artikelInfo").classList.add("hidden");
+        document.getElementById("bewertungForm").classList.add("hidden");
+        document.getElementById("warningMessage").classList.remove("hidden");
+        document.getElementById("status").textContent = "Bereit zum Scannen.";
+        currentArtikelData = null;
+        
+        // Fokus zurück auf Input
+        document.getElementById("nfcInput").focus();
+    }
+
+    main();
+</script>
+
+</body>
+</html>

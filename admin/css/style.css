@@ -1,0 +1,839 @@
+/* Jahrgang-Eingabefeld soll so breit sein wie Kategorie-Dropdown */
+.input-kategorie-width {
+    max-width: 220px;
+    width: 100%;
+    box-sizing: border-box;
+}
+/* -*- coding: utf-8 -*- */
+
+/* Grundlayout – Chardonnay-Look */
+body {
+    background-color: #f7f2c4;
+    color: #2a1f14;
+    margin: 0;
+    padding: 1rem;
+    font-family: Arial, sans-serif;
+}
+
+h1, h2, h3 {
+    margin-top: 0;
+    color: #2a1f14;
+}
+
+/* Error messages */
+.error-message {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+#currentBoardIdDisplay {
+    font-style: italic;
+}
+
+/* NAVIGATION --------------------------------------------------- */
+
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #e0d89b;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.navbar-logo {
+    height: 40px;
+    width: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.navbar-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.navbar-right .nav-list {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-list a {
+    text-decoration: none;
+    color: #2a1f14;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.nav-list a:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.nav-list a.active {
+    background-color: #8c7d45;
+    color: #fff;
+}
+
+/* SEITENLAYOUT ------------------------------------------------- */
+
+.main-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.list-wrapper {
+    width: unset;
+    min-width: unset;
+    max-width: 700px;
+}
+
+.form-wrapper {
+    flex: 1;
+    min-width: 320px;
+}
+
+/* LIEFERANTENLISTE -------------------------------------------- */
+
+.list-head {
+    display: grid;
+    grid-template-columns: 50px 120px 350px 120px;
+    gap: 1rem;
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #e0d89b;
+    font-size: 0.9em;
+}
+
+#lieferantenListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 400px;
+    overflow: auto;
+}
+
+#lieferantenListe li {
+    padding: 0.5em 0.6em;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+/* alternierende Zeilen */
+#lieferantenListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#lieferantenListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+.list-wrapper button {
+    margin-top: 1rem;
+}
+
+.list-row {
+    display: grid;
+    grid-template-columns: 50px 120px 350px 120px;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+    font-size: 0.9em;
+}
+
+.list-col-uid {
+    white-space: nowrap;
+}
+
+.list-col-name,
+.list-col-firma {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.list-col-firma {
+    color: #555;
+}
+
+/* FORMULARE ---------------------------------------------------- */
+
+form {
+    max-width: 900px;
+}
+
+form p {
+    margin: 0 0 0.25rem 0;
+}
+
+label strong {
+    display: inline-block;
+    margin-bottom: 0.2rem;
+}
+
+/* 3-Spalten-Grid */
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 0.5rem;
+    align-items: flex-start;
+    max-width: 1100px;
+}
+
+/* Zwei-Spalten-Reihen (z.B. EAN-Bereich) */
+.field-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.field-group {
+    margin-bottom: 0.5rem;
+}
+
+/* Kunden-Drei-Spalten-Layout ------------------------------- */
+
+.kunde-three-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.kunde-column-with-border {
+    border-right: 2px solid #b8b29a;
+    padding-right: 2rem;
+}
+
+.kunde-nfc-column {
+    padding-left: 0;
+}
+
+.kunde-nfc-column h4 {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.kunde-nfc-column .field-group {
+    margin-top: 1.5rem;
+}
+
+.kunde-nfc-column .field-group p {
+    margin-bottom: 0.5rem;
+}
+
+/* Eingabefelder */
+input,
+textarea,
+select {
+    background: #ffffff;
+    color: #000;
+    border: 1px solid #b8b29a;
+    padding: 4px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+textarea {
+    resize: vertical;
+}
+
+/* KUNDENLISTE -------------------------------------------------- */
+
+.list-wrapper-kunden {
+    min-width: 500px;
+    max-width: 650px;
+}
+
+.list-head-kunden {
+    display: grid;
+    grid-template-columns: 120px 250px 1fr;
+    gap: 1rem;
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #f9f9f9;
+    font-size: 0.9em;
+}
+
+.list-head-kunden + ul .list-row {
+    display: grid;
+    grid-template-columns: 120px 250px 1fr;
+    gap: 1rem;
+}
+
+.form-hint-small {
+    font-size: 0.85em;
+    margin-top: 0.3rem;
+    margin-bottom: 0;
+    color: #666;
+}
+
+.form-hint {
+    font-size: 0.9em;
+    margin-top: 0;
+    margin-bottom: 0.8rem;
+    color: #666;
+}
+
+/* ARTIKELLISTE ------------------------------------------------- */
+
+.list-wrapper-artikel {
+    min-width: 800px;
+    max-width: 1000px;
+}
+
+.form-wrapper-artikel {
+    max-width: 500px;
+}
+
+.list-head-artikel {
+    display: grid;
+    grid-template-columns: 200px 120px 1fr 100px;
+    gap: 1rem;
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #f9f9f9;
+    font-size: 0.9em;
+}
+
+.list-head-artikel + ul .list-row {
+    display: grid;
+    grid-template-columns: 200px 120px 1fr 100px;
+    gap: 1rem;
+}
+
+/* Kategorien-Container + Labels -------------------------------- */
+
+#kategorienContainer {
+    background: #fff;
+    color: #000;
+    border: 1px solid #b8b29a;
+    border-radius: 4px;
+    padding: 0.5rem;
+    max-height: 280px;
+    display: block;
+
+    /* nur vertikal scrollen, horizontal immer aus */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Eine Kategoriezeile */
+#kategorienContainer .kategorie-label {
+    width: 100%;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 10px;
+    padding: 4px 6px;
+}
+
+#kategorienContainer .kategorie-label input[type="checkbox"] {
+    margin: 0;
+    width: auto;      /* <-- WICHTIG: überschreibt width:100% */
+}
+
+/* Sorten-Container --------------------------------------------- */
+
+.kategorie-two-column {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.kategorie-column-left,
+.kategorie-column-right {
+    flex: 1;
+    min-width: 300px;
+}
+
+#sortenContainer {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.sorte-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.sorte-input {
+    flex: 1;
+}
+
+#btnAddSorte {
+    margin-bottom: 1rem;
+    background: #6a8d4f;
+}
+
+#btnAddSorte:hover {
+    background: #587540;
+}
+
+.btn-new-item {
+    margin-top: 1rem;
+}
+
+.btn-save-customer {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.btn-save-lieferant {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.btn-add-ean {
+    margin-top: 1rem;
+}
+
+.ean-bereiche-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.ean-bereiche-inner {
+    grid-column: 1 / 3;
+}
+
+.nfc-code-display {
+    font-size: 1.3rem;
+    color: #2c5282;
+    font-weight: bold;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Buttons ------------------------------------------------------ */
+
+button {
+    padding: 0.7em 1.5em;
+    font-size: 1em;
+    border-radius: 4px;
+    border: none;
+    background: #8c7d45;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #72683a;
+}
+
+/* Hinweise / Status ------------------------------------------- */
+
+.hint {
+    margin-top: 0;
+    font-size: 0.9em;
+}
+
+#status {
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+    font-size: 0.9em;
+}
+
+/* EAN-BEREICHELISTE (Lieferantenseite) ------------------------- */
+
+#eanListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 250px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+#eanListe li {
+    padding: 0.2em 0.6em;
+}
+
+/* alternierend */
+#eanListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#eanListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+.list-head-2 {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #e0d89b;
+    font-size: 0.9em;
+}
+
+.list-row-2 {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+    font-size: 0.9em;
+}
+
+.cat-col-id {
+    white-space: nowrap;
+}
+
+.cat-col-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#kategorienListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 400px;
+    overflow: auto;
+}
+
+#kategorienListe li {
+    padding: 0.5em 0.6em;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+#kategorienListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#kategorienListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+/* BOARDLISTE --------------------------------------------------- */
+
+.list-head-board {
+    display: grid;
+    grid-template-columns: 250px 100px 1fr;
+    gap: 1rem;
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #e0d89b;
+    font-size: 0.9em;
+}
+
+.list-row-board {
+    display: grid;
+    grid-template-columns: 250px 100px 1fr;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+    font-size: 0.9em;
+}
+
+#boardsListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 400px;
+    overflow: auto;
+}
+
+#boardsListe li {
+    padding: 0.5em 0.6em;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+#boardsListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#boardsListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+/* DASHBOARD (Startseite – falls verwendet) --------------------- */
+
+.dashboard {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.dashboard-intro {
+    max-width: 650px;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+.dash-card {
+    display: block;
+    background: #fff;
+    border: 1px solid #b8b29a;
+    border-radius: 10px;
+    padding: 1.2rem;
+    text-decoration: none;
+    color: #2a1f14;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    transition: 0.2s;
+}
+
+.dash-card:hover {
+    transform: translateY(-3px);
+    background-color: #f5eec0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+}
+
+.dash-card h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+#artikelListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 400px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+#artikelListe li {
+    padding: 0.5em 0.6em;
+    cursor: pointer;
+}
+
+/* alternierende Zeilen */
+#artikelListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#artikelListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+.confirm-box {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    max-width: 320px;
+    background: #ffffff;
+    color: #2a1f14;
+    border: 1px solid #b8b29a;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    font-size: 0.9em;
+    z-index: 1000;
+}
+
+.confirm-box.hidden {
+    display: none;
+}
+
+.confirm-box-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.btn-secondary {
+    background: #ccc;
+    color: #000;
+}
+
+.btn-secondary:hover {
+    background: #b5b5b5;
+}
+/* KUNDENLISTE – analog zur Lieferantenliste ------------------- */
+
+#kundenListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 400px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+#kundenListe li {
+    padding: 0.5em 0.6em;
+    cursor: pointer;
+}
+
+#kundenListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#kundenListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+/* NFC-Liste pro Kunde */
+
+#kundenNfcListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 250px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+#kundenNfcListe li {
+    padding: 0.4em 0.6em;
+    cursor: pointer;
+}
+
+#kundenNfcListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#kundenNfcListe li:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+/* Boards-Liste pro Kunde */
+
+#kundenBoardsContainer {
+    border: 1px solid #ccc;
+    max-height: 250px;
+    overflow: auto;
+    background-color: #ffffff;
+}
+
+#kundenBoardsListe {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+#kundenBoardsListe thead th {
+    background-color: #e0d89b;
+    padding: 0.5em 0.6em;
+    text-align: left;
+    font-weight: bold;
+    border-bottom: 2px solid #ccc;
+}
+
+#kundenBoardsListe td {
+    padding: 0.5em 0.6em;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#kundenBoardsListe tr:last-child td {
+    border-bottom: none;
+}
+
+#kundenBoardsListe tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#kundenBoardsListe tbody tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+.board-nfc-count {
+    text-align: center;
+    width: 80px;
+}
+
+.board-actions {
+    text-align: right;
+    white-space: nowrap;
+    width: 100px;
+}
+
+.btn-board-action {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.9em;
+    margin-left: 0.3rem;
+}
+
+/* -*- coding: utf-8 -*- */
+/* Board-Visualisierung -------------------------------------------------- */
+
+.board-visual-wrapper {
+    max-width: 600px;
+}
+
+.board-meta {
+    margin-bottom: 0.5rem;
+    font-size: 0.9em;
+}
+
+.board-visual {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    padding: 1rem;
+    border: 1px solid #b8b29a;
+}
+
+.board-slot {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #d0c8a5;
+    padding: 0.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    font-size: 0.85em;
+}
+
+.board-slot-pos {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.board-slot-code {
+    word-break: break-all;
+    color: #333;
+}
+#btnSaveBoard {
+    margin-top: 1.5rem;
+}

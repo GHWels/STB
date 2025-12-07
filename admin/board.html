@@ -1,0 +1,565 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTastingBoard – Boards</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – Boards verwalten / anzeigen</span>
+    </div>
+    <nav class="navbar-right">
+        <ul class="nav-list">
+            <li><a href="index.html">Start</a></li>
+            <li><a href="lieferant.html">Lieferanten</a></li>
+            <li><a href="artikel.html">Artikel</a></li>
+            <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="board.html" class="active">Boards</a></li>
+            <li><a href="kategorien.html">Kategorien</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="main-layout">
+
+    <!-- Board-Liste links -->
+    <div class="list-wrapper">
+        <h2>Board-Liste</h2>
+        <p class="hint">Klicke auf ein Board, um es zu bearbeiten oder neu anlegen und grafisch anzuzeigen.</p>
+
+        <div class="list-head-board">
+            <span>BoardID</span>
+            <span>Anz. NFC</span>
+            <span>Erstellt am</span>
+        </div>
+
+        <ul id="boardsListe">
+            <li>(Lade Boards...)</li>
+        </ul>
+
+        <button id="btnNeuBoard" type="button" class="btn-new-item">Neues Board anlegen</button>
+    </div>
+
+    <!-- Formular + Visualisierung rechts -->
+    <div class="form-wrapper">
+        <h2>Board & NFC-Eingabe: <span id="currentBoardIdDisplay"></span></h2>
+
+        <form id="boardForm">
+            <div class="form-grid-3">
+                <div>
+                    <p>
+                        <label for="anzahlNfc"><strong>Anzahl NFC-Codes:</strong></label>
+                        <select id="anzahlNfc" required>
+                            <option value="">-- bitte wählen --</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                    </p>
+                </div>
+                <div>
+                    <!-- CreatedAt nur intern, nicht editierbar -->
+                </div>
+            </div>
+
+            <p class="form-hint">
+                Die NFC-Codes werden direkt in der Board-Ansicht unten in den Positionen 1…N eingetragen.<br>
+                Das Board kann nur gespeichert werden, wenn alle Felder befüllt sind.
+            </p>
+        </form>
+
+        <div class="board-visual-wrapper">
+
+            <div id="boardVisual" class="board-visual">
+                <div>(Bitte ein Board links auswählen oder neu anlegen und Anzahl NFC setzen)</div>
+            </div>
+        </div>
+
+        <p id="status"></p>
+        
+        <button id="btnSaveBoard" type="submit" form="boardForm">Board speichern</button>
+        <button id="btnDeleteBoard" type="button" disabled>Board löschen</button>
+    </div>
+
+</div>
+
+<script type="module">
+    // -*- coding: utf-8 -*-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc,
+        collection,
+        getDocs,
+        addDoc,
+        deleteDoc,
+        query,
+        where,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    let db = null;
+    let currentBoardId = null;
+
+    async function main() {
+        const status = document.getElementById("status");
+        const btnNeu = document.getElementById("btnNeuBoard");
+        const btnDelete = document.getElementById("btnDeleteBoard");
+        const anzahlSelect = document.getElementById("anzahlNfc");
+
+        try {
+            const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+
+            await loadBoardsListe();
+
+            const form = document.getElementById("boardForm");
+            form.addEventListener("submit", onSaveBoard);
+
+            btnNeu.addEventListener("click", () => {
+                clearForm();
+                currentBoardId = null;
+                btnDelete.disabled = true;
+                anzahlSelect.disabled = false;
+                updateBoardMeta(null);
+                renderBoardVisual(0, []);
+                status.textContent = "Neues Board – bitte Anzahl NFC-Codes wählen.";
+                status.className = "";
+            });
+
+            btnDelete.addEventListener("click", onDeleteBoard);
+
+            anzahlSelect.addEventListener("change", onAnzahlNfcChanged);
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Initialisieren: " + (err.message ?? err);
+            status.className = "error-message";
+        }
+    }
+
+    async function loadBoardsListe() {
+        const ul = document.getElementById("boardsListe");
+        ul.innerHTML = "";
+        const loadingLi = document.createElement("li");
+        loadingLi.textContent = "(Lade Boards...)";
+        ul.appendChild(loadingLi);
+
+        try {
+            const snap = await getDocs(collection(db, "Boards"));
+
+            if (snap.empty) {
+                ul.innerHTML = "";
+                const li = document.createElement("li");
+                li.textContent = "(Keine Boards gefunden)";
+                ul.appendChild(li);
+                return;
+            }
+
+            ul.innerHTML = "";
+
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const boardId   = data.BoardID || docSnap.id;
+                const anzahlNfc = data.AnzahlNFC ?? "";
+                const createdAt = data.CreatedAt
+                    ? data.CreatedAt.toDate().toLocaleDateString("de-AT")
+                    : "";
+
+                const li = document.createElement("li");
+                const row = document.createElement("div");
+                row.className = "list-row-board";
+
+                const colId = document.createElement("span");
+                colId.className = "list-col-uid";
+                colId.textContent = boardId;
+
+                const colAnz = document.createElement("span");
+                colAnz.className = "list-col-name";
+                colAnz.textContent = anzahlNfc;
+
+                const colDate = document.createElement("span");
+                colDate.className = "list-col-firma";
+                colDate.textContent = createdAt;
+
+                row.appendChild(colId);
+                row.appendChild(colAnz);
+                row.appendChild(colDate);
+                li.appendChild(row);
+
+                li.addEventListener("click", () => {
+                    loadBoardInForm(boardId);
+                });
+
+                ul.appendChild(li);
+            });
+
+        } catch (err) {
+            console.error("Fehler beim Laden der Boards:", err);
+            ul.innerHTML = "";
+            const li = document.createElement("li");
+            li.textContent = "(Fehler beim Laden der Boards)";
+            ul.appendChild(li);
+        }
+    }
+
+    async function loadBoardInForm(boardId) {
+        const status = document.getElementById("status");
+        const anzahlSelect = document.getElementById("anzahlNfc");
+        const btnDelete = document.getElementById("btnDeleteBoard");
+
+        try {
+            const ref = doc(db, "Boards", boardId);
+            const snap = await getDoc(ref);
+
+            if (!snap.exists()) {
+                status.textContent = "Board mit ID " + boardId + " nicht gefunden.";
+                status.className = "error-message";
+                return;
+            }
+
+            const data = snap.data();
+            currentBoardId = boardId;
+
+            document.getElementById("currentBoardIdDisplay").textContent = data.BoardID || boardId;
+            const anzahlNfc = data.AnzahlNFC ?? 0;
+            anzahlSelect.value = anzahlNfc ? String(anzahlNfc) : "";
+            anzahlSelect.disabled = true; // Nach dem Speichern nicht mehr änderbar
+            btnDelete.disabled = false;
+
+            // NFC-Codes aus BoardNFC Collection laden
+            const nfcQuery = query(collection(db, "BoardNFC"), where("BoardID", "==", boardId));
+            const nfcSnapshot = await getDocs(nfcQuery);
+            const nfcCodes = [];
+            nfcSnapshot.forEach(docSnap => {
+                const nfcData = docSnap.data();
+                nfcCodes.push({
+                    code: nfcData.NfcCode,
+                    position: nfcData.Position
+                });
+            });
+            // Sortieren nach Position
+            nfcCodes.sort((a, b) => a.position - b.position);
+            const sortedCodes = nfcCodes.map(item => item.code);
+
+            updateBoardMeta(data, boardId);
+            renderBoardVisual(anzahlNfc, sortedCodes);
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Laden des Boards: " + (err.message ?? err);
+            status.className = "error-message";
+        }
+    }
+
+    function clearForm() {
+        const form = document.getElementById("boardForm");
+        const anzahlSelect = document.getElementById("anzahlNfc");
+        const btnDelete = document.getElementById("btnDeleteBoard");
+        form.reset();
+        document.getElementById("currentBoardIdDisplay").textContent = "";
+        anzahlSelect.disabled = false; // Für neues Board wieder aktivieren
+        btnDelete.disabled = true;
+        updateBoardMeta(null);
+        renderBoardVisual(0, []);
+    }
+
+    function onAnzahlNfcChanged() {
+        const value = document.getElementById("anzahlNfc").value;
+        const count = parseInt(value, 10);
+
+        const oldInputs = Array.from(document.querySelectorAll(".nfc-pos-input"));
+        const existingCodes = oldInputs.map(inp => inp.value.trim());
+
+        if (!count || isNaN(count) || count < 1) {
+            renderBoardVisual(0, []);
+        } else {
+            renderBoardVisual(count, existingCodes);
+        }
+    }
+
+    async function onSaveBoard(e) {
+        e.preventDefault();
+        const status = document.getElementById("status");
+
+        const anzahlStr = document.getElementById("anzahlNfc").value;
+
+        if (!anzahlStr) {
+            status.textContent = "Bitte Anzahl NFC-Codes wählen.";
+            status.className = "error-message";
+            return;
+        }
+
+        const anzahlNfc = Number(anzahlStr);
+        if (isNaN(anzahlNfc) || anzahlNfc < 1 || anzahlNfc > 10) {
+            status.textContent = "Anzahl NFC-Codes muss zwischen 1 und 10 liegen.";
+            status.className = "error-message";
+            return;
+        }
+
+        const nfcInputs = document.querySelectorAll(".nfc-pos-input");
+        if (nfcInputs.length !== anzahlNfc) {
+            status.textContent = "Anzahl der NFC-Felder stimmt nicht mit der Auswahl überein. Bitte Anzahl neu setzen.";
+            status.className = "error-message";
+            return;
+        }
+
+        const nfcCodes = [];
+        const nfcPattern = /^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){6}$/;
+        
+        for (const input of nfcInputs) {
+            const val = input.value.trim();
+            if (!val) {
+                status.textContent = "Alle NFC-Positionen müssen befüllt sein, bevor das Board gespeichert werden darf.";
+                status.className = "error-message";
+                return;
+            }
+            if (!nfcPattern.test(val)) {
+                status.innerHTML = `Ungültiges NFC-Code Format: "${val}".<br>Bitte Format verwenden: XX:XX:XX:XX:XX:XX:XX (z.B. 1D:79:F7:09:66:00:00)`;
+                status.className = "error-message";
+                return;
+            }
+            nfcCodes.push(val);
+        }
+
+        // Prüfen auf doppelte NFC-Codes im aktuellen Board
+        const duplicates = nfcCodes.filter((code, index) => nfcCodes.indexOf(code) !== index);
+        if (duplicates.length > 0) {
+            status.innerHTML = `Doppelte NFC-Codes gefunden: ${[...new Set(duplicates)].join(", ")}<br>Jeder NFC-Code darf nur einmal verwendet werden.`;
+            status.className = "error-message";
+            return;
+        }
+
+        // Prüfen, ob NFC-Codes bereits in anderen Boards verwendet werden
+        try {
+            for (const nfcCode of nfcCodes) {
+                const q = query(collection(db, "BoardNFC"), where("NfcCode", "==", nfcCode));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const existingDoc = querySnapshot.docs[0];
+                    const existingBoardId = existingDoc.data().BoardID;
+                    
+                    // Erlauben, wenn es das gleiche Board ist (beim Aktualisieren)
+                    if (existingBoardId !== currentBoardId) {
+                        status.innerHTML = `NFC-Code "${nfcCode}" wird bereits in Board "${existingBoardId}" verwendet.<br>Jeder NFC-Code darf nur einmal verwendet werden.`;
+                        status.className = "error-message";
+                        return;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Fehler beim Prüfen der NFC-Codes:", err);
+            status.textContent = "Fehler beim Prüfen der NFC-Codes: " + (err.message ?? err);
+            status.className = "error-message";
+            return;
+        }
+
+        try {
+            status.textContent = "Speichere Board...";
+            status.className = "";
+
+            let boardId;
+
+            if (!currentBoardId) {
+                // Neues Board: Firebase generiert die ID
+                const docRef = await addDoc(collection(db, "Boards"), {
+                    AnzahlNFC: anzahlNfc,
+                    CreatedAt: serverTimestamp()
+                });
+                boardId = docRef.id;
+                
+                // BoardID im Dokument speichern
+                await setDoc(docRef, {
+                    BoardID: boardId
+                }, { merge: true });
+
+                // NFC-Codes in BoardNFC Collection speichern
+                for (let i = 0; i < nfcCodes.length; i++) {
+                    await setDoc(doc(db, "BoardNFC", nfcCodes[i]), {
+                        NfcCode: nfcCodes[i],
+                        BoardID: boardId,
+                        Position: i + 1,
+                        CreatedAt: serverTimestamp()
+                    });
+                }
+            } else {
+                // Bestehendes Board aktualisieren
+                boardId = currentBoardId;
+                const ref = doc(db, "Boards", boardId);
+                await setDoc(ref, {
+                    BoardID: boardId,
+                    AnzahlNFC: anzahlNfc
+                }, { merge: true });
+
+                // Alte NFC-Codes aus BoardNFC löschen
+                const oldNfcQuery = query(collection(db, "BoardNFC"), where("BoardID", "==", boardId));
+                const oldNfcSnapshot = await getDocs(oldNfcQuery);
+                for (const docSnap of oldNfcSnapshot.docs) {
+                    await deleteDoc(docSnap.ref);
+                }
+
+                // Neue NFC-Codes in BoardNFC speichern
+                for (let i = 0; i < nfcCodes.length; i++) {
+                    await setDoc(doc(db, "BoardNFC", nfcCodes[i]), {
+                        NfcCode: nfcCodes[i],
+                        BoardID: boardId,
+                        Position: i + 1,
+                        UpdatedAt: serverTimestamp()
+                    });
+                }
+            }
+
+            status.textContent = "Board gespeichert.";
+            status.className = "";
+            currentBoardId = boardId;
+
+            await loadBoardsListe();
+            await loadBoardInForm(boardId);
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Speichern: " + (err.message ?? err);
+            status.className = "error-message";
+        }
+    }
+
+    async function onDeleteBoard() {
+        const status = document.getElementById("status");
+        
+        if (!currentBoardId) {
+            status.textContent = "Kein Board zum Löschen ausgewählt.";
+            status.className = "error-message";
+            return;
+        }
+
+        const confirmDelete = confirm(`Möchten Sie das Board "${currentBoardId}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`);
+        
+        if (!confirmDelete) {
+            status.textContent = "Löschen abgebrochen.";
+            status.className = "";
+            return;
+        }
+
+        try {
+            status.textContent = "Lösche Board...";
+            status.className = "";
+
+            // NFC-Codes aus BoardNFC Collection löschen
+            const nfcQuery = query(collection(db, "BoardNFC"), where("BoardID", "==", currentBoardId));
+            const nfcSnapshot = await getDocs(nfcQuery);
+            for (const docSnap of nfcSnapshot.docs) {
+                await deleteDoc(docSnap.ref);
+            }
+
+            // Board löschen
+            const ref = doc(db, "Boards", currentBoardId);
+            await deleteDoc(ref);
+            
+            // Liste zuerst aktualisieren
+            await loadBoardsListe();
+            
+            // Dann Formular zurücksetzen
+            clearForm();
+            const deletedBoardId = currentBoardId;
+            currentBoardId = null;
+            
+            status.textContent = `Board "${deletedBoardId}" erfolgreich gelöscht.`;
+            status.className = "";
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Löschen: " + (err.message ?? err);
+            status.className = "error-message";
+        }
+    }
+
+    function updateBoardMeta(data, boardIdOverride = null) {
+        const viewBoardId   = document.getElementById("viewBoardId");
+        const viewAnzahlNfc = document.getElementById("viewAnzahlNfc");
+        const viewCreatedAt = document.getElementById("viewCreatedAt");
+
+        // Wenn die Elemente nicht existieren, Funktion beenden
+        if (!viewBoardId || !viewAnzahlNfc || !viewCreatedAt) {
+            return;
+        }
+
+        if (!data) {
+            viewBoardId.textContent   = "–";
+            viewAnzahlNfc.textContent = "–";
+            viewCreatedAt.textContent = "–";
+            return;
+        }
+
+        const boardId   = data.BoardID || boardIdOverride || "–";
+        const anzahlNfc = data.AnzahlNFC ?? "–";
+        const createdAt = data.CreatedAt
+            ? data.CreatedAt.toDate().toLocaleDateString("de-AT")
+            : "–";
+
+        viewBoardId.textContent   = boardId;
+        viewAnzahlNfc.textContent = anzahlNfc;
+        viewCreatedAt.textContent = createdAt;
+    }
+
+    function renderBoardVisual(anzahlNfc, nfcCodes = []) {
+        const visual = document.getElementById("boardVisual");
+        visual.innerHTML = "";
+
+        if (!anzahlNfc || anzahlNfc < 1) {
+            visual.innerHTML = "<div>Bitte Anzahl NFC-Codes auswählen. Die Positionen erscheinen dann hier.</div>";
+            return;
+        }
+
+        for (let i = 0; i < anzahlNfc; i++) {
+            const pos = i + 1;
+            const code = nfcCodes[i] || "";
+
+            const slot = document.createElement("div");
+            slot.className = "board-slot";
+
+            const posEl = document.createElement("div");
+            posEl.className = "board-slot-pos";
+            posEl.textContent = "Pos " + pos;
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "nfc-pos-input";
+            input.value = code;
+            input.placeholder = "z.B. 1D:79:F7:09:66:00:00";
+            input.pattern = "[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){6}";
+            input.title = "Format: XX:XX:XX:XX:XX:XX:XX (7 Bytes, hexadezimal)";
+
+            const codeEl = document.createElement("div");
+            codeEl.className = "board-slot-code";
+            codeEl.appendChild(input);
+
+            slot.appendChild(posEl);
+            slot.appendChild(codeEl);
+            visual.appendChild(slot);
+        }
+    }
+
+    main();
+</script>
+
+</body>
+</html>

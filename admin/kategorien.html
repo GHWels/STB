@@ -1,0 +1,367 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartTastingBoard – Kategorien verwalten</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – Kategorien</span>
+    </div>
+    <nav class="navbar-right">
+        <ul class="nav-list">
+            <li><a href="index.html">Start</a></li>
+            <li><a href="board.html">Board</a></li>
+            <li><a href="lieferant.html">Lieferanten</a></li>
+            <li><a href="artikel.html">Artikel</a></li>
+            <li><a href="kategorien.html" class="active">Kategorien</a></li>
+            <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="main-layout">
+
+    <!-- Liste der Kategorien -->
+    <div class="list-wrapper">
+        <h2>Kategorien-Liste</h2>
+        <p class="hint">Klicke auf eine Kategorie, um sie zu bearbeiten.</p>
+
+        <div class="list-head-2">
+            <span>Kategorie</span>
+            <span>Sorten</span>
+        </div>
+
+        <ul id="kategorienListe">
+            <li>(Lade Kategorien...)</li>
+        </ul>
+
+        <button id="btnNeuKategorie" type="button" class="btn-new-item">Neue Kategorie anlegen</button>
+    </div>
+
+    <!-- Formular für Kategorie -->
+    <div class="form-wrapper">
+        <div class="kategorie-two-column">
+            <!-- Linke Spalte: Kategorie-Formular -->
+            <div class="kategorie-column-left">
+                <h2>Kategorie bearbeiten / anlegen</h2>
+
+                <form id="kategorieForm">
+                    <p>
+                        <label for="kategorieId"><strong>Kategorie-ID (z.B. "Schnaps", "Olivenöl"):</strong></label>
+                        <input type="text" id="kategorieId" required>
+                    </p>
+
+                    <button type="submit">Kategorie speichern</button>
+                    <button type="button" id="btnDeleteKategorie" disabled>Kategorie löschen</button>
+                </form>
+
+                <p id="status"></p>
+            </div>
+
+            <!-- Rechte Spalte: Sorten-Eingabe -->
+            <div class="kategorie-column-right">
+                <h2>Sorten</h2>
+                <p class="hint">Füge Sorten wie "Williams", "Vogelbeere" etc. hinzu.<br>Die Sorten werden alphabetisch sortiert gespeichert.</p>
+                
+                <div id="sortenContainer">
+                    <!-- Sorten werden hier dynamisch eingefügt -->
+                </div>
+                <button type="button" id="btnAddSorte">+ Neue Sorte hinzufügen</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    // -*- coding: utf-8 -*-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc,
+        collection,
+        getDocs,
+        deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    let db = null;
+    let currentKategorieId = null;
+
+    async function main() {
+        const status = document.getElementById("status");
+        const btnNeu = document.getElementById("btnNeuKategorie");
+        const btnAddSorte = document.getElementById("btnAddSorte");
+        const btnDelete = document.getElementById("btnDeleteKategorie");
+
+        try {
+            const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+
+            await loadKategorienListe();
+
+            const form = document.getElementById("kategorieForm");
+            form.addEventListener("submit", onSaveKategorie);
+            
+            btnNeu.addEventListener("click", () => {
+                clearForm();
+                currentKategorieId = null;
+                btnDelete.disabled = true;
+                status.textContent = "Neue Kategorie – bitte Daten eingeben.";
+            });
+
+            btnAddSorte.addEventListener("click", () => {
+                addSorteInput();
+            });
+
+            btnDelete.addEventListener("click", onDeleteKategorie);
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Initialisieren: " + (err.message ?? err);
+        }
+    }
+
+    async function loadKategorienListe() {
+        const ul = document.getElementById("kategorienListe");
+        ul.innerHTML = "";
+
+        const loadingLi = document.createElement("li");
+        loadingLi.textContent = "(Lade Kategorien...)";
+        ul.appendChild(loadingLi);
+
+        try {
+            const snap = await getDocs(collection(db, "Kategorien"));
+
+            if (snap.empty) {
+                ul.innerHTML = "";
+                const li = document.createElement("li");
+                li.textContent = "(Keine Kategorien gefunden)";
+                ul.appendChild(li);
+                return;
+            }
+
+            ul.innerHTML = "";
+
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const id   = docSnap.id;
+                const sorten = Array.isArray(data.Sorten) ? data.Sorten : [];
+                const sortenText = sorten.length > 0 ? sorten.join(", ") : "(keine Sorten)";
+
+                const li = document.createElement("li");
+                const row = document.createElement("div");
+                row.className = "list-row-2";
+
+                const colId = document.createElement("span");
+                colId.className = "cat-col-id";
+                colId.textContent = id;
+
+                const colSorten = document.createElement("span");
+                colSorten.className = "cat-col-name";
+                colSorten.textContent = sortenText;
+
+                row.appendChild(colId);
+                row.appendChild(colSorten);
+                li.appendChild(row);
+
+                li.addEventListener("click", () => {
+                    loadKategorieInForm(id);
+                });
+
+                ul.appendChild(li);
+            });
+
+        } catch (err) {
+            console.error("Fehler beim Laden der Kategorien:", err);
+            ul.innerHTML = "";
+            const li = document.createElement("li");
+            li.textContent = "(Fehler beim Laden der Kategorien)";
+            ul.appendChild(li);
+        }
+    }
+
+    async function loadKategorieInForm(id) {
+        const status = document.getElementById("status");
+        const btnDelete = document.getElementById("btnDeleteKategorie");
+
+        try {
+            const ref = doc(db, "Kategorien", id);
+            const snap = await getDoc(ref);
+
+            if (!snap.exists()) {
+                status.textContent = "Kategorie mit ID " + id + " nicht gefunden.";
+                return;
+            }
+
+            const data = snap.data();
+            currentKategorieId = id;
+
+            document.getElementById("kategorieId").value = id;
+
+            // Sorten laden (bereits alphabetisch sortiert)
+            const sorten = Array.isArray(data.Sorten) ? data.Sorten : [];
+            loadSorten(sorten);
+
+            btnDelete.disabled = false;
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Laden der Kategorie: " + (err.message ?? err);
+        }
+    }
+
+    function clearForm() {
+        document.getElementById("kategorieForm").reset();
+        document.getElementById("sortenContainer").innerHTML = "";
+        document.getElementById("btnDeleteKategorie").disabled = true;
+        currentKategorieId = null;
+    }
+
+    function addSorteInput(value = "") {
+        const container = document.getElementById("sortenContainer");
+        
+        const sorteDiv = document.createElement("div");
+        sorteDiv.className = "sorte-input-group";
+        sorteDiv.style.display = "flex";
+        sorteDiv.style.gap = "0.5rem";
+        sorteDiv.style.marginBottom = "0.5rem";
+        sorteDiv.style.alignItems = "center";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "sorte-input";
+        input.placeholder = "z.B. Williams, Vogelbeere, ...";
+        input.value = value;
+        input.style.flex = "1";
+
+        const btnRemove = document.createElement("button");
+        btnRemove.type = "button";
+        btnRemove.textContent = "✕";
+        btnRemove.style.padding = "0.4rem 0.8rem";
+        btnRemove.addEventListener("click", () => {
+            container.removeChild(sorteDiv);
+        });
+
+        sorteDiv.appendChild(input);
+        sorteDiv.appendChild(btnRemove);
+        container.appendChild(sorteDiv);
+    }
+
+    function loadSorten(sorten) {
+        const container = document.getElementById("sortenContainer");
+        container.innerHTML = "";
+        
+        if (sorten.length === 0) {
+            // Mindestens ein leeres Feld anzeigen
+            addSorteInput();
+        } else {
+            sorten.forEach(sorte => {
+                addSorteInput(sorte);
+            });
+        }
+    }
+
+    function getSortenFromForm() {
+        const inputs = document.querySelectorAll(".sorte-input");
+        const sorten = [];
+        
+        inputs.forEach(input => {
+            const val = input.value.trim();
+            if (val) {
+                sorten.push(val);
+            }
+        });
+        
+        // Alphabetisch sortieren
+        sorten.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+        
+        return sorten;
+    }
+
+    async function onSaveKategorie(e) {
+        e.preventDefault();
+        const status = document.getElementById("status");
+
+        const id = document.getElementById("kategorieId").value.trim();
+        const sorten = getSortenFromForm();
+
+        if (!id) {
+            status.textContent = "Kategorie-ID darf nicht leer sein.";
+            return;
+        }
+
+        try {
+            status.textContent = "Speichere Kategorie...";
+
+            const ref = doc(db, "Kategorien", id);
+            await setDoc(ref, {
+                Sorten: sorten
+            }, { merge: true });
+
+            currentKategorieId = id;
+
+            status.textContent = "Kategorie erfolgreich gespeichert. Sorten wurden alphabetisch sortiert.";
+            await loadKategorienListe();
+            
+            // Sorten neu laden, um die sortierte Reihenfolge anzuzeigen
+            loadSorten(sorten);
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Speichern: " + (err.message ?? err);
+        }
+    }
+
+    async function onDeleteKategorie() {
+        const status = document.getElementById("status");
+        
+        if (!currentKategorieId) {
+            status.textContent = "Keine Kategorie zum Löschen ausgewählt.";
+            return;
+        }
+
+        const kategorieId = document.getElementById("kategorieId").value.trim();
+        const confirmDelete = confirm(`Möchten Sie die Kategorie "${kategorieId}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`);
+        
+        if (!confirmDelete) {
+            status.textContent = "Löschen abgebrochen.";
+            return;
+        }
+
+        try {
+            status.textContent = "Lösche Kategorie...";
+            
+            const ref = doc(db, "Kategorien", currentKategorieId);
+            await deleteDoc(ref);
+            
+            // Liste zuerst aktualisieren
+            await loadKategorienListe();
+            
+            // Dann Formular zurücksetzen
+            clearForm();
+            
+            status.textContent = `Kategorie "${kategorieId}" erfolgreich gelöscht.`;
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Löschen: " + (err.message ?? err);
+        }
+    }
+
+    main();
+</script>
+
+</body>
+</html>
