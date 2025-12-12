@@ -58,111 +58,91 @@
 
         <form id="lieferantForm">
 
-            <!-- Oberer 3-Spalten-Block: Webseite + UID | Anzeigename + Betriebsnummer | Firestore-ID -->
-            <div class="form-grid-3">
+            <!-- Oberer Block neu: Spalte 1+2 als eigener Grid, Spalte 3 separat (unabhängig in der Höhe) -->
+            <div style="display:flex; gap:1rem; align-items:flex-start;">
+                <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                    <!-- Spalte 1: Webseite + UID -->
+                    <div>
+                        <p>
+                            <label for="website"><strong>Webseite:</strong></label>
+                            <input type="url" id="website">
+                        </p>
+                        <p>
+                            <label for="firmenname"><strong>Firmenname:</strong></label>
+                            <input type="text" id="firmenname">
+                        </p>
+                        <p>
+                            <label for="strasse"><strong>Straße / Hausnummer:</strong></label>
+                            <input type="text" id="strasse">
+                        </p>
+                        <p>
+                            <label for="plz"><strong>PLZ:</strong></label>
+                            <input type="text" id="plz">
+                        </p>
+                        <p>
+                            <label for="uid"><strong>UID (8 Zeichen, Dokument-ID):</strong></label>
+                            <input type="text" id="uid" maxlength="8">
+                        </p>
+                        <p>
+                            <label for="eanMinLieferant"><strong>EAN Min:</strong></label>
+                            <input type="text" id="eanMinLieferant" placeholder="z. B. 9001200000000">
+                        </p>
+                    </div>
 
-                <!-- Spalte 1: UID + Betriebsnummer (unterhalb) -->
-                <div>
-                    <p>
-                        <label for="website"><strong>Webseite:</strong></label>
-                        <input type="url" id="website">
-                    </p>
-                    <p>
-                        <label for="uid"><strong>UID (8 Zeichen, Dokument-ID):</strong></label>
-                        <input type="text" id="uid" maxlength="8">
-                    </p>
-                    <p class="form-hint-small">
-                        Webseite ist ein Pflichtfeld.
-                    </p>
+                    <!-- Spalte 2: Anzeigename + Betriebsnummer -->
+                    <div>
+                        <p>
+                            <label for="name"><strong>Anzeigename / Kurzname:</strong></label>
+                            <input type="text" id="name" required>
+                        </p>
+                        <p>
+                            <label for="telefon"><strong>Telefon:</strong></label>
+                            <input type="tel" id="telefon">
+                        </p>
+                        <p>
+                            <label for="email"><strong>E-Mail:</strong></label>
+                            <input type="email" id="email">
+                        </p>
+                        <p>
+                            <label for="ort"><strong>Ort:</strong></label>
+                            <input type="text" id="ort">
+                        </p>
+                                                <p>
+                            <label for="betriebsnummer"><strong>Betriebsnummer:</strong></label>
+                            <input type="text" id="betriebsnummer" placeholder="Alternative zur UID">
+                        </p>
+                        <p>
+                            <label for="eanMaxLieferant"><strong>EAN Max (optional):</strong></label>
+                            <input type="text" id="eanMaxLieferant" placeholder="z. B. 9001299999999">
+                        </p>
+                    </div>
+
+                    <!-- Sonstiges unter EAN Min und EAN Max, über beide Spalten -->
+                    <div style="grid-column: 1 / span 2;">
+                        <p>
+                            <label for="notizen"><strong>Sonstiges:</strong></label>
+                            <textarea id="notizen" rows="6" placeholder="Zusätzliche Anmerkungen…"></textarea>
+                        </p>
+                    </div>
                 </div>
 
-                <!-- Spalte 2: Anzeigename + Betriebsnummer -->
-                <div>
-                    <p>
-                        <label for="name"><strong>Anzeigename / Kurzname:</strong></label>
-                        <input type="text" id="name" required>
-                    </p>
-                    <p>
-                        <label for="betriebsnummer"><strong>Betriebsnummer:</strong></label>
-                        <input type="text" id="betriebsnummer" placeholder="Alternative zur UID">
-                    </p>
-                </div>
-
-                <!-- Spalte 3: Firestore ID (read-only Feld) -->
-                <div>
+                <!-- Spalte 3: unabhängig von Spalten 1+2 -->
+                <div style="flex:0 0 32%; min-width:280px;">
                     <p>
                         <label for="docId"><strong>ID (Firestore Dokument-ID):</strong></label>
                         <input type="text" id="docId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
                     </p>
-                </div>
-            </div>
-
-            <!-- Unterer 3-Spalten-Block -->
-            <div class="form-grid-3">
-
-                <!-- Spalte 1: Firmendaten -->
-                <div>
-                    <p>
-                        <label for="firmenname"><strong>Firmenname:</strong></label>
-                        <input type="text" id="firmenname">
-                    </p>
-
-                    <p>
-                        <label for="strasse"><strong>Straße / Hausnummer:</strong></label>
-                        <input type="text" id="strasse">
-                    </p>
-
-                    <p>
-                        <label for="plz"><strong>PLZ:</strong></label>
-                        <input type="text" id="plz">
-                    </p>
-
-                    <p>
-                        <label for="ort"><strong>Ort:</strong></label>
-                        <input type="text" id="ort">
-                    </p>
-
-
-                    <p>
-                        <label for="eanMinLieferant"><strong>EAN Min:</strong></label>
-                        <input type="text" id="eanMinLieferant" placeholder="z. B. 9001200000000">
-                    </p>
-
-                    <p>
-                        <label for="eanMaxLieferant"><strong>EAN Max (optional):</strong></label>
-                        <input type="text" id="eanMaxLieferant" placeholder="z. B. 9001299999999">
-                    </p>
-                </div>
-
-                <!-- Spalte 2: Kontakt + Notizen (Webseite nach oben verschoben) -->
-                <div>
-                    <p>
-                        <label for="telefon"><strong>Telefon:</strong></label>
-                        <input type="tel" id="telefon">
-                    </p>
-
-                    <p>
-                        <label for="email"><strong>E-Mail:</strong></label>
-                        <input type="email" id="email">
-                    </p>
-
-                    <p>
-                        <label for="notizen"><strong>Sonstiges:</strong></label>
-                        <textarea id="notizen" rows="4" placeholder="Zusätzliche Anmerkungen…"></textarea>
-                    </p>
-                </div>
-
-                <!-- Spalte 3: Kategorien -->
-                <div>
                     <p>
                         <label for="kategorienContainer"><strong>Kategorien:</strong></label>
                         <div id="kategorienContainer">
                             (Lade Kategorien...)
                         </div>
                     </p>
+                    
                 </div>
-
             </div>
+
+            <!-- Unterer Block entfernt: alle Felder oben integriert -->
 
             <!-- EAN-Bereich-Liste entfernt -->
 
