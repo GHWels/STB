@@ -299,7 +299,7 @@ textarea {
 
 .list-head-kunden {
     display: grid;
-    grid-template-columns: 120px 250px 1fr;
+    grid-template-columns: 240px 250px 1fr;
     gap: 1rem;
     padding: 0.4em 0.6em;
     font-weight: bold;
@@ -311,7 +311,7 @@ textarea {
 
 .list-head-kunden + ul .list-row {
     display: grid;
-    grid-template-columns: 120px 250px 1fr;
+    grid-template-columns: 240px 250px 1fr;
     gap: 1rem;
 }
 

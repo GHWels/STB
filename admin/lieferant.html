@@ -40,7 +40,7 @@
         <p class="hint">Klicke auf einen Eintrag, um ihn zu bearbeiten.</p>
 
         <div class="list-head list-head-lieferanten">
-            <span>Webseite</span>
+            <span>WEB-Seite</span>
             <span>Name</span>
             <span>Firmenname</span>
         </div>
@@ -282,7 +282,22 @@
 
                 const colUid = document.createElement("span");
                 colUid.className = "list-col-uid";
-                colUid.textContent = uid || "—";
+                if (uid) {
+                    try {
+                        const u = new URL(uid);
+                        const a = document.createElement("a");
+                        a.href = uid;
+                        a.target = "_blank";
+                        a.rel = "noopener noreferrer";
+                        a.textContent = uid;
+                        colUid.appendChild(a);
+                    } catch {
+                        // not a valid absolute URL, show as plain text
+                        colUid.textContent = uid;
+                    }
+                } else {
+                    colUid.textContent = "—";
+                }
 
                 const colName = document.createElement("span");
                 colName.className = "list-col-name";

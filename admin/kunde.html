@@ -43,7 +43,7 @@
         </div>
 
         <div class="list-head list-head-kunden">
-            <span>UID</span>
+            <span>WEB-Seite</span>
             <span>Name</span>
             <span>Ort</span>
         </div>
@@ -62,31 +62,18 @@
 
         <form id="kundenForm">
 
-            <!-- obere Zeile: UID + Name + Boards -->
-            <div class="form-grid-3">
-                <div>
-                    <p>
-                        <label for="kundenUid"><strong>UID-Nr:</strong></label>
-                        <input type="text" id="kundenUid" placeholder="z.B. ATU12345678" required class="input-full-width">
-                    </p>
-                </div>
-                <div class="kunde-column-with-border">
-                    <p>
-                        <label for="kundenName"><strong>Name:</strong></label>
-                        <input type="text" id="kundenName" required>
-                    </p>
-                </div>
-                <div>
-                    <h3>Boards dieses Kunden</h3>
-                </div>
-            </div>
-
             <!-- Adress- / Kontaktzeilen mit NFC-Spalte -->
             <div class="kunde-three-column">
                 <!-- Spalte 1: Adresse -->
                 <div>
-                    <h3>Adresse</h3>
-
+                    <p>
+                        <label for="website"><strong>WEB-Seite:</strong></label>
+                        <input type="url" id="website" placeholder="https://www.herbsthofer.at" required>
+                    </p>
+                    <p>
+                        <label for="kundenName"><strong>Name:</strong></label>
+                        <input type="text" id="kundenName" required>
+                    </p>
                     <p>
                         <label for="strasse"><strong>Straße / Hausnummer:</strong></label>
                         <input type="text" id="strasse">
@@ -96,22 +83,18 @@
                         <label for="plz"><strong>PLZ:</strong></label>
                         <input type="text" id="plz">
                     </p>
-
                     <p>
-                        <label for="ort"><strong>Ort:</strong></label>
-                        <input type="text" id="ort">
-                    </p>
-
-                    <p>
-                        <label for="land"><strong>Land:</strong></label>
-                        <input type="text" id="land" value="Österreich">
+                        <label for="kundenUid"><strong>UID-Nr:</strong></label>
+                        <input type="text" id="kundenUid" placeholder="z.B. ATU12345678" class="input-full-width">
                     </p>
                 </div>
 
                 <!-- Spalte 2: Kontakt -->
                 <div class="kunde-column-with-border">
-                    <h3>Kontakt</h3>
-
+                    <p>
+                        <label for="kurzName"><strong>Anzeigename / Kurzname:</strong></label>
+                        <input type="text" id="kurzName" required>
+                    </p>
                     <p>
                         <label for="telefon"><strong>Telefon:</strong></label>
                         <input type="tel" id="telefon">
@@ -121,40 +104,13 @@
                         <label for="email"><strong>E-Mail:</strong></label>
                         <input type="email" id="email">
                     </p>
-
                     <p>
-                        <label for="website"><strong>WEB-Seite:</strong></label>
-                        <input type="url" id="website" placeholder="https://www.herbsthofer.at">
-                    </p>
-                </div>
-
-                <!-- Spalte 3: Boards -->
-                <div class="kunde-nfc-column">
-
-                    <p class="hint">
-                        Hier kannst du Boards einem Kunden zuordnen.<br>
-                        Klick auf ein Board in der Liste, um es wieder zu entfernen.
+                        <label for="ort"><strong>Ort:</strong></label>
+                        <input type="text" id="ort">
                     </p>
 
-                    <div id="kundenBoardsContainer">
-                        <table id="kundenBoardsListe">
-                            <thead>
-                                <tr>
-                                    <th>Board-ID</th>
-                                    <th>Anz. NFC</th>
-                                    <th>Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td colspan="3">(Noch kein Kunde ausgewählt)</td></tr>
-                            </tbody>
-                        </table>
-                        <p>
-                            <button type="button" id="btnAddBoard" disabled>Board hinzufügen</button>
-                        </p>
-                    </div>
                 </div>
-                
+               
                 <!-- Notizen über zwei Spalten unter Adresse/Land und Kontakt -->
                 <div class="grid-span-two">
                     <p>
@@ -192,7 +148,6 @@
     async function main() {
         const status = document.getElementById("kundenStatus");
         const btnNeu = document.getElementById("btnNeuKunde");
-        const btnAddBoard = document.getElementById("btnAddBoard");
 
         try {
             const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
@@ -200,20 +155,17 @@
             db = getFirestore(app);
 
             await loadKundenListe();
-            await loadAvailableBoards();
 
             const form = document.getElementById("kundenForm");
             form.addEventListener("submit", onSaveKunde);
 
             btnNeu.addEventListener("click", () => {
                 clearForm();
-                clearBoardsListe();
-                disableBoardSelection();
                 currentKundenId = null;
                 status.textContent = "Neuer Kunde – bitte Daten eingeben.";
             });
 
-            btnAddBoard.addEventListener("click", onAddBoard);
+            // Boards-Funktionalität entfernt
 
             status.textContent = "";
         } catch (err) {
@@ -244,7 +196,7 @@
 
             snap.forEach(docSnap => {
                 const data = docSnap.data();
-                const uid = data.UID || docSnap.id;
+                const website = (data.Website || "").toString();
                 const name = data.Name || "";
                 const ort  = data.Ort || "";
 
@@ -254,7 +206,7 @@
 
                 const colNr = document.createElement("span");
                 colNr.className = "list-col-uid";
-                colNr.textContent = uid;
+                colNr.textContent = website || "—";
 
                 const colName = document.createElement("span");
                 colName.className = "list-col-name";
@@ -294,7 +246,6 @@
 
             if (!snap.exists()) {
                 status.textContent = "Kunde mit ID " + kundenId + " nicht gefunden.";
-                clearBoardsListe();
                 return;
             }
 
@@ -305,34 +256,20 @@
                 uidInput.value = data.UID || "";
                 uidInput.readOnly = false;
             document.getElementById("kundenName").value = data.Name || "";
+            document.getElementById("kurzName").value   = (data.KurzName || "");
             document.getElementById("strasse").value    = data.Strasse || "";
             document.getElementById("plz").value        = data.PLZ || "";
             document.getElementById("ort").value        = data.Ort || "";
-            document.getElementById("land").value       = data.Land || "";
             document.getElementById("telefon").value    = data.Telefon || "";
             document.getElementById("email").value      = data.Email || "";
             document.getElementById("website").value    = data.Website || "";
             document.getElementById("notizen").value    = data.Notizen || "";
 
-            const notizenPreview = (data.Notizen || "").trim();
-            if (notizenPreview) {
-                const shortNote = notizenPreview.length > 120 ? (notizenPreview.slice(0, 120) + "…") : notizenPreview;
-                status.textContent = "Kunde " + (data.Name || kundenId) + " geladen – Notizen: " + shortNote;
-            } else {
-                status.textContent = "Kunde " + (data.Name || kundenId) + " geladen.";
-            }
-
-            const boards = Array.isArray(data.Boards) ? data.Boards : [];
-            renderBoardsListe(boards);
-            
-            // Board-Auswahl aktivieren
-            enableBoardSelection();
+            // Notizen-Vorschau entfernt (nicht genutzt)
 
         } catch (err) {
             console.error(err);
             status.textContent = "Fehler beim Laden des Kunden: " + (err.message ?? err);
-            clearBoardsListe();
-            disableBoardSelection();
         }
     }
 
@@ -340,47 +277,11 @@
         document.getElementById("kundenForm").reset();
     }
 
-    function clearBoardsListe() {
-        const tbody = document.querySelector("#kundenBoardsListe tbody");
-        tbody.innerHTML = "";
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 3;
-        td.textContent = "(Noch keine Boards zugeordnet)";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-    }
+    // Boards-Liste entfernt
 
-    function enableBoardSelection() {
-        document.getElementById("boardSelect").disabled = false;
-        document.getElementById("btnAddBoard").disabled = false;
-    }
+    // Board-Auswahl entfernt
 
-    function disableBoardSelection() {
-        document.getElementById("boardSelect").disabled = true;
-        document.getElementById("btnAddBoard").disabled = true;
-        document.getElementById("boardSelect").value = "";
-    }
-
-    async function loadAvailableBoards() {
-        const select = document.getElementById("boardSelect");
-        
-        try {
-            const snap = await getDocs(collection(db, "Boards"));
-            
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                const boardId = data.BoardID || docSnap.id;
-                
-                const option = document.createElement("option");
-                option.value = boardId;
-                option.textContent = boardId;
-                select.appendChild(option);
-            });
-        } catch (err) {
-            console.error("Fehler beim Laden der Boards:", err);
-        }
-    }
+    // Boards-Auswahl entfernt
 
     async function onSaveKunde(e) {
         e.preventDefault();
@@ -388,10 +289,10 @@
 
         const kundenUid = document.getElementById("kundenUid").value.trim();
         const kundenName = document.getElementById("kundenName").value.trim();
+        const kurzName   = document.getElementById("kurzName").value.trim();
         const strasse    = document.getElementById("strasse").value.trim();
         const plz        = document.getElementById("plz").value.trim();
         const ort        = document.getElementById("ort").value.trim();
-        const land       = document.getElementById("land").value.trim();
         const telefon    = document.getElementById("telefon").value.trim();
         const email      = document.getElementById("email").value.trim();
         const website    = document.getElementById("website").value.trim();
@@ -425,12 +326,12 @@
             let kundenDocId = currentKundenId;
 
             const kundenData = {
-                UID: kundenUid,
+                UID: kundenUid || null,
                 Name: kundenName,
+                KurzName: kurzName || null,
                 Strasse: strasse || null,
                 PLZ: plz || null,
                 Ort: ort || null,
-                Land: land || null,
                 Telefon: telefon || null,
                 Email: email || null,
                 Website: website || null,
@@ -451,163 +352,16 @@
             status.textContent = "Kunde erfolgreich gespeichert.";
             await loadKundenListe();
             
-            // Board-Auswahl aktivieren, wenn Kunde gespeichert wurde
-            enableBoardSelection();
+            // Boards-Funktionalität entfernt
         } catch (err) {
             console.error(err);
             status.textContent = "Fehler beim Speichern: " + (err.message ?? err);
         }
     }
 
-    async function renderBoardsListe(boards) {
-        const tbody = document.querySelector("#kundenBoardsListe tbody");
-        tbody.innerHTML = "";
+    // Boards-Liste entfernt
 
-        if (!boards || boards.length === 0) {
-            const tr = document.createElement("tr");
-            const td = document.createElement("td");
-            td.colSpan = 3;
-            td.textContent = "(Noch keine Boards zugeordnet)";
-            tr.appendChild(td);
-            tbody.appendChild(tr);
-            return;
-        }
-
-        // Board-Daten aus Firestore laden
-        for (const boardId of boards) {
-            const tr = document.createElement("tr");
-            
-            // Spalte 1: Board-ID
-            const tdBoard = document.createElement("td");
-            tdBoard.textContent = boardId;
-            
-            // Spalte 2: Anzahl NFC-Codes
-            const tdNfcCount = document.createElement("td");
-            tdNfcCount.className = "board-nfc-count";
-            tdNfcCount.textContent = "...";
-            
-            // Board-Daten laden
-            try {
-                const boardRef = doc(db, "Boards", boardId);
-                const boardSnap = await getDoc(boardRef);
-                
-                if (boardSnap.exists()) {
-                    const boardData = boardSnap.data();
-                    const nfcCodes = Array.isArray(boardData.NfcCodes) ? boardData.NfcCodes : [];
-                    tdNfcCount.textContent = nfcCodes.length;
-                } else {
-                    tdNfcCount.textContent = "0";
-                }
-            } catch (err) {
-                console.error("Fehler beim Laden der Board-Daten:", err);
-                tdNfcCount.textContent = "?";
-            }
-            
-            // Spalte 3: Buttons
-            const tdButtons = document.createElement("td");
-            tdButtons.className = "board-actions";
-            
-            const btnOpen = document.createElement("button");
-            btnOpen.type = "button";
-            btnOpen.textContent = "→";
-            btnOpen.title = "Zum Board wechseln";
-            btnOpen.className = "btn-board-action";
-            btnOpen.addEventListener("click", (e) => {
-                e.stopPropagation();
-                window.location.href = `board.html`;
-            });
-            
-            const btnRemove = document.createElement("button");
-            btnRemove.type = "button";
-            btnRemove.textContent = "✕";
-            btnRemove.title = "Board entfernen";
-            btnRemove.className = "btn-board-action";
-            btnRemove.addEventListener("click", async (e) => {
-                e.stopPropagation();
-                await removeBoard(boardId);
-            });
-            
-            tdButtons.appendChild(btnOpen);
-            tdButtons.appendChild(btnRemove);
-            
-            tr.appendChild(tdBoard);
-            tr.appendChild(tdNfcCount);
-            tr.appendChild(tdButtons);
-            tbody.appendChild(tr);
-        }
-    }
-
-    async function onAddBoard() {
-        const status = document.getElementById("kundenStatus");
-        const boardSelect = document.getElementById("boardSelect");
-        const boardId = boardSelect.value.trim();
-
-        if (!currentKundenId) {
-            status.textContent = "Bitte zuerst einen Kunden auswählen oder speichern.";
-            return;
-        }
-        if (!boardId) {
-            status.textContent = "Bitte ein Board auswählen.";
-            return;
-        }
-
-        try {
-            status.textContent = "Füge Board hinzu...";
-
-            const refKunde = doc(db, "Kunden", currentKundenId);
-            await updateDoc(refKunde, {
-                Boards: arrayUnion(boardId)
-            }).catch(async err => {
-                if (err && err.code === "not-found") {
-                    await setDoc(refKunde, { Boards: [boardId] }, { merge: true });
-                } else {
-                    throw err;
-                }
-            });
-
-            // Liste neu laden
-            const snap = await getDoc(refKunde);
-            const data = snap.data();
-            const boards = Array.isArray(data.Boards) ? data.Boards : [];
-            renderBoardsListe(boards);
-
-            boardSelect.value = "";
-            status.textContent = "Board hinzugefügt.";
-        } catch (err) {
-            console.error(err);
-            status.textContent = "Fehler beim Hinzufügen des Boards: " + (err.message ?? err);
-        }
-    }
-
-    async function removeBoard(boardId) {
-        const status = document.getElementById("kundenStatus");
-
-        if (!currentKundenId) return;
-
-        if (!confirm("Board \"" + boardId + "\" wirklich vom Kunden entfernen?")) {
-            return;
-        }
-
-        try {
-            status.textContent = "Entferne Board...";
-
-            const refKunde = doc(db, "Kunden", currentKundenId);
-            await updateDoc(refKunde, {
-                Boards: arrayRemove(boardId)
-            });
-
-            // Liste neu laden
-            const snap = await getDoc(refKunde);
-            const data = snap.data();
-            const boards = Array.isArray(data.Boards) ? data.Boards : [];
-            renderBoardsListe(boards);
-
-            status.textContent = "Board entfernt.";
-        } catch (err) {
-            console.error(err);
-            status.textContent = "Fehler beim Entfernen des Boards: " + (err.message ?? err);
-        }
-    }
+    // Boards-Hinzufügen/Entfernen entfernt
 
     main();
 </script>
