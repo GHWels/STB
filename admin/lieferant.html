@@ -24,6 +24,7 @@
             <li><a href="lieferant.html" class="active">Lieferanten</a></li>
             <li><a href="artikel.html">Artikel</a></li>
             <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="event.html">Events</a></li>
             <li><a href="board.html">Board</a></li>
             <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
             <li><a href="kategorien.html">Kategorien</a></li>
@@ -34,12 +35,12 @@
 <div class="main-layout">
 
     <!-- Liste der Lieferanten -->
-    <div class="list-wrapper">
+    <div class="list-wrapper list-wrapper-lieferanten">
         <h2>Lieferanten-Liste</h2>
         <p class="hint">Klicke auf einen Eintrag, um ihn zu bearbeiten.</p>
 
-        <div class="list-head">
-            <span>UID</span>
+        <div class="list-head list-head-lieferanten">
+            <span>Webseite</span>
             <span>Name</span>
             <span>Firmenname</span>
         </div>
@@ -57,29 +58,33 @@
 
         <form id="lieferantForm">
 
-            <!-- Oberer 3-Spalten-Block: UID + ID + Anzeigename -->
+            <!-- Oberer 3-Spalten-Block: Webseite + UID | Anzeigename + Betriebsnummer | Firestore-ID -->
             <div class="form-grid-3">
 
                 <!-- Spalte 1: UID + Betriebsnummer (unterhalb) -->
                 <div>
                     <p>
+                        <label for="website"><strong>Webseite:</strong></label>
+                        <input type="url" id="website">
+                    </p>
+                    <p>
                         <label for="uid"><strong>UID (8 Zeichen, Dokument-ID):</strong></label>
                         <input type="text" id="uid" maxlength="8">
                     </p>
-                    <p>
-                        <label for="betriebsnummer"><strong>Betriebsnummer:</strong></label>
-                        <input type="text" id="betriebsnummer" placeholder="Alternative zur UID">
-                    </p>
                     <p class="form-hint-small">
-                        Mindestens UID oder Betriebsnummer muss ausgefüllt sein.
+                        Webseite ist ein Pflichtfeld.
                     </p>
                 </div>
 
-                <!-- Spalte 2: Anzeigename -->
+                <!-- Spalte 2: Anzeigename + Betriebsnummer -->
                 <div>
                     <p>
                         <label for="name"><strong>Anzeigename / Kurzname:</strong></label>
                         <input type="text" id="name" required>
+                    </p>
+                    <p>
+                        <label for="betriebsnummer"><strong>Betriebsnummer:</strong></label>
+                        <input type="text" id="betriebsnummer" placeholder="Alternative zur UID">
                     </p>
                 </div>
 
@@ -97,8 +102,6 @@
 
                 <!-- Spalte 1: Firmendaten -->
                 <div>
-                    <h3>Firmendaten</h3>
-
                     <p>
                         <label for="firmenname"><strong>Firmenname:</strong></label>
                         <input type="text" id="firmenname">
@@ -119,10 +122,6 @@
                         <input type="text" id="ort">
                     </p>
 
-                    <p>
-                        <label for="land"><strong>Land:</strong></label>
-                        <input type="text" id="land" value="Österreich">
-                    </p>
 
                     <p>
                         <label for="eanMinLieferant"><strong>EAN Min:</strong></label>
@@ -133,14 +132,10 @@
                         <label for="eanMaxLieferant"><strong>EAN Max (optional):</strong></label>
                         <input type="text" id="eanMaxLieferant" placeholder="z. B. 9001299999999">
                     </p>
-
-                    <button type="button" id="btnAddEanRange" class="btn-add-ean">EAN-Bereich hinzufügen</button>
                 </div>
 
-                <!-- Spalte 2: Kontakt + Notizen -->
+                <!-- Spalte 2: Kontakt + Notizen (Webseite nach oben verschoben) -->
                 <div>
-                    <h3>Kontakt</h3>
-
                     <p>
                         <label for="telefon"><strong>Telefon:</strong></label>
                         <input type="tel" id="telefon">
@@ -152,11 +147,6 @@
                     </p>
 
                     <p>
-                        <label for="website"><strong>Webseite:</strong></label>
-                        <input type="url" id="website">
-                    </p>
-
-                    <p>
                         <label for="notizen"><strong>Sonstiges:</strong></label>
                         <textarea id="notizen" rows="4" placeholder="Zusätzliche Anmerkungen…"></textarea>
                     </p>
@@ -164,8 +154,6 @@
 
                 <!-- Spalte 3: Kategorien -->
                 <div>
-                    <h3>&nbsp;</h3>
-
                     <p>
                         <label for="kategorienContainer"><strong>Kategorien:</strong></label>
                         <div id="kategorienContainer">
@@ -176,19 +164,7 @@
 
             </div>
 
-            <!-- EAN-Bereiche über Spalte 1 und 2 -->
-            <div class="ean-bereiche-container">
-                <div class="ean-bereiche-inner">
-                    <div class="list-head-2">
-                        <span>EAN Min</span>
-                        <span>EAN Max</span>
-                    </div>
-                    <ul id="eanListe">
-                        <li>(Kein Lieferant ausgewählt)</li>
-                    </ul>
-                </div>
-                <div></div>
-            </div>
+            <!-- EAN-Bereich-Liste entfernt -->
 
             <div class="form-actions">
                 <button type="submit" class="btn-save-lieferant">Lieferant speichern</button>
@@ -210,8 +186,6 @@
         getDoc,
         collection,
         getDocs,
-        query,
-        where,
         addDoc
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -236,10 +210,11 @@
 
             btnNeu.addEventListener("click", () => {
                 clearForm();
-                clearEanList();
             });
 
-            btnAddEan.addEventListener("click", onAddEanRange);
+            if (btnAddEan) {
+                btnAddEan.addEventListener("click", onAddEanRange);
+            }
             // No ID copy button or save-as-new; keep minimal wiring
         } catch (err) {
             console.error(err);
@@ -312,7 +287,7 @@
                 const data = docSnap.data();
                 items.push({
                     id: docSnap.id,
-                    uid: data.UID || docSnap.id,
+                    uid: (data.Website || "").toString(),
                     name: (data.Name || "").toString(),
                     firma: data.Firmenname || ""
                 });
@@ -323,11 +298,11 @@
             items.forEach(({ id: firestoreId, uid, name, firma }) => {
                 const li = document.createElement("li");
                 const row = document.createElement("div");
-                row.className = "list-row";
+                row.className = "list-row list-row-lieferanten";
 
                 const colUid = document.createElement("span");
                 colUid.className = "list-col-uid";
-                colUid.textContent = uid;
+                colUid.textContent = uid || "—";
 
                 const colName = document.createElement("span");
                 colName.className = "list-col-name";
@@ -368,7 +343,6 @@
 
             if (!snap.exists()) {
                 status.textContent = "Lieferant mit ID " + uid + " nicht gefunden.";
-                clearEanList();
                 return;
             }
 
@@ -391,7 +365,6 @@
             document.getElementById("strasse").value    = data.Strasse || "";
             document.getElementById("plz").value        = data.PLZ || "";
             document.getElementById("ort").value        = data.Ort || "";
-            document.getElementById("land").value       = data.Land || "";
             document.getElementById("telefon").value    = data.Telefon || "";
             document.getElementById("email").value      = data.Email || "";
             document.getElementById("website").value    = data.Website || "";
@@ -405,12 +378,11 @@
                     cb.checked = kategorien.includes(cb.value);
                 });
 
-            await loadEanRangesFor(uid);
+            // EAN-Liste entfernt
 
         } catch (err) {
             console.error(err);
             status.textContent = "Fehler beim Laden des Lieferanten: " + (err.message ?? err);
-            clearEanList();
         }
     }
 
@@ -426,13 +398,7 @@
         if (docIdInput) docIdInput.value = "";
     }
 
-    function clearEanList() {
-        const ul = document.getElementById("eanListe");
-        ul.innerHTML = "";
-        const li = document.createElement("li");
-        li.textContent = "(Noch keine EAN-Bereiche für diesen Lieferanten)";
-        ul.appendChild(li);
-    }
+    
 
     async function onSaveLieferant(e) {
         e.preventDefault();
@@ -445,7 +411,6 @@
         const strasse    = document.getElementById("strasse").value.trim();
         const plz        = document.getElementById("plz").value.trim();
         const ort        = document.getElementById("ort").value.trim();
-        const land       = document.getElementById("land").value.trim();
         const telefon    = document.getElementById("telefon").value.trim();
         const email      = document.getElementById("email").value.trim();
         const website    = document.getElementById("website").value.trim();
@@ -453,6 +418,21 @@
 
         if (!name) {
             status.textContent = "Anzeigename / Kurzname darf nicht leer sein.";
+            return;
+        }
+        // Webseite ist Pflichtfeld + einfache URL-Validierung (http/https)
+        if (!website) {
+            status.textContent = "Webseite darf nicht leer sein.";
+            return;
+        }
+        try {
+            const u = new URL(website);
+            if (u.protocol !== "http:" && u.protocol !== "https:") {
+                status.textContent = "Webseite muss mit http(s) beginnen.";
+                return;
+            }
+        } catch {
+            status.textContent = "Bitte eine gültige URL für die Webseite angeben.";
             return;
         }
 
@@ -474,7 +454,6 @@
                 Strasse: strasse || null,
                 PLZ: plz || null,
                 Ort: ort || null,
-                Land: land || null,
                 Telefon: telefon || null,
                 Email: email || null,
                 Website: website || null,
@@ -505,7 +484,6 @@
 
             status.textContent = "Lieferant erfolgreich gespeichert.";
             await loadLieferantenListe();
-            await loadEanRangesFor(docId);
 
         } catch (err) {
             console.error(err);
@@ -515,55 +493,7 @@
 
     // Removed onSaveLieferantAsNew: Save-as-new button no longer exists
 
-    async function loadEanRangesFor(uid) {
-        const ul = document.getElementById("eanListe");
-        ul.innerHTML = "";
-        const loadingLi = document.createElement("li");
-        loadingLi.textContent = "(Lade EAN-Bereiche...)";
-        ul.appendChild(loadingLi);
-
-        try {
-            const q = query(collection(db, "EANHersteller"), where("UID", "==", uid));
-            const snap = await getDocs(q);
-
-            if (snap.empty) {
-                clearEanList();
-                return;
-            }
-
-            ul.innerHTML = "";
-
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                const eanMin = data.EANMin || docSnap.id;
-                const eanMax = data.EANMax || "";
-
-                const li = document.createElement("li");
-                const row = document.createElement("div");
-                row.className = "list-row-2";
-
-                const colMin = document.createElement("span");
-                colMin.className = "cat-col-id";
-                colMin.textContent = eanMin;
-
-                const colMax = document.createElement("span");
-                colMax.className = "cat-col-name";
-                colMax.textContent = eanMax || "—";
-
-                row.appendChild(colMin);
-                row.appendChild(colMax);
-                li.appendChild(row);
-                ul.appendChild(li);
-            });
-
-        } catch (err) {
-            console.error("Fehler beim Laden der EAN-Bereiche:", err);
-            ul.innerHTML = "";
-            const li = document.createElement("li");
-            li.textContent = "(Fehler beim Laden der EAN-Bereiche)";
-            ul.appendChild(li);
-        }
-    }
+    
 
     async function onAddEanRange() {
         const status = document.getElementById("status");
@@ -605,7 +535,7 @@
             document.getElementById("eanMinLieferant").value = "";
             document.getElementById("eanMaxLieferant").value = "";
 
-            await loadEanRangesFor(uid);
+            // EAN-Liste entfernt
         } catch (err) {
             console.error(err);
             status.textContent = "Fehler beim Speichern des EAN-Bereichs: " + (err.message ?? err);

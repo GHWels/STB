@@ -1,0 +1,400 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartTastingBoard – Events verwalten</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – Events</span>
+    </div>
+    <nav class="navbar-right">
+        <ul class="nav-list">
+            <li><a href="index.html">Start</a></li>
+            <li><a href="lieferant.html">Lieferanten</a></li>
+            <li><a href="artikel.html">Artikel</a></li>
+            <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="board.html">Board</a></li>
+            <li><a href="event.html" class="active">Events</a></li>
+            <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
+            <li><a href="kategorien.html">Kategorien</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div class="main-layout">
+
+    <!-- Event-Liste links -->
+    <div class="list-wrapper">
+        <h2>Event-Liste</h2>
+        <p class="hint">Klicke auf ein Event, um es zu bearbeiten.</p>
+
+        <div class="list-head-3">
+            <span>Datum</span>
+            <span>Kunde</span>
+            <span>Eventname</span>
+        </div>
+
+        <ul id="eventListe">
+            <li>(Lade Events...)</li>
+        </ul>
+
+        <button id="btnNeuEvent" type="button" class="btn-new-item">Neues Event anlegen</button>
+    </div>
+
+    <!-- Formular rechts -->
+    <div class="form-wrapper">
+        <h2>Event bearbeiten / anlegen</h2>
+
+        <p id="status"></p>
+
+        <div class="form-two-col">
+            <div class="form-col-1">
+                <form id="eventForm">
+                    <!-- Zeile 1: Eventname -->
+                    <div class="field-row-1 field-group">
+                        <p>
+                            <label for="eventName"><strong>Eventname:</strong></label>
+                            <input type="text" id="eventName" placeholder="z.B. Verkostung im Dezember" required>
+                        </p>
+                    </div>
+
+                    <!-- Zeile 2: Datum -->
+                    <div class="field-row-1 field-group">
+                        <p>
+                            <label for="eventDatum"><strong>Datum:</strong></label>
+                            <input type="date" id="eventDatum" required>
+                        </p>
+                    </div>
+
+                    <!-- Zeile 3: Kunde -->
+                    <div class="field-row-1 field-group">
+                        <p>
+                            <label for="kundeSelect"><strong>Kunde:</strong></label>
+                            <select id="kundeSelect" required>
+                                <option value="">-- Bitte wählen --</option>
+                            </select>
+                        </p>
+                    </div>
+
+                    <!-- Zeile 4: Kategorie -->
+                    <div class="field-row-1 field-group">
+                        <p>
+                            <label for="kategorieSelect"><strong>Kategorie:</strong></label>
+                            <select id="kategorieSelect" required>
+                                <option value="">-- Bitte wählen --</option>
+                            </select>
+                        </p>
+                    </div>
+
+                    <!-- Sorte entfernt -->
+
+                    <button type="submit" class="btn-save-customer">Event speichern</button>
+                </form>
+            </div>
+            <div class="form-col-2">
+                <section class="event-boards">
+                    <h3>Boards im Event</h3>
+                    <table id="eventBoardsTable">
+                        <thead>
+                            <tr>
+                                <th>Board</th>
+                                <th>Info</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="2">(Event noch nicht gespeichert)</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    // -*- coding: utf-8 -*-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        getFirestore,
+        doc,
+        setDoc,
+        getDoc,
+        collection,
+        getDocs,
+        addDoc,
+        Timestamp,
+        query,
+        where
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    let db = null;
+
+    async function main() {
+        const status = document.getElementById("status");
+        const btnNeu = document.getElementById("btnNeuEvent");
+
+        try {
+            const firebaseConfig = await fetch("./config/firebaseConfig.json").then(r => r.json());
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+
+            await loadKunden();
+            await loadKategorien();
+            await loadEventsListe();
+
+            // Sorte wurde entfernt; keine Sorten-Nachladung mehr nötig
+
+            const form = document.getElementById("eventForm");
+            form.addEventListener("submit", onSaveEvent);
+
+            btnNeu.addEventListener("click", () => {
+                clearForm();
+            });
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Initialisieren: " + (err.message ?? err);
+        }
+    }
+
+    async function loadKunden() {
+        const select = document.getElementById("kundeSelect");
+        select.innerHTML = '<option value="">-- Bitte wählen --</option>';
+        try {
+            const snap = await getDocs(collection(db, "Kunden"));
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const option = document.createElement("option");
+                option.value = docSnap.id; // Firestore ID
+                option.textContent = data.Name || docSnap.id;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error("Fehler beim Laden der Kunden:", err);
+        }
+    }
+
+    async function loadKategorien() {
+        const select = document.getElementById("kategorieSelect");
+        select.innerHTML = '<option value="">-- Bitte wählen --</option>';
+        try {
+            const snap = await getDocs(collection(db, "Kategorien"));
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const katId = docSnap.id;
+                const name = data.Name || katId;
+                const option = document.createElement("option");
+                option.value = katId;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error("Fehler beim Laden der Kategorien:", err);
+        }
+    }
+
+    // Funktion loadSorten entfernt, da Feld "Sorte" entfernt wurde
+
+    async function loadEventsListe() {
+        const ul = document.getElementById("eventListe");
+        ul.innerHTML = "";
+        const loadingLi = document.createElement("li");
+        loadingLi.textContent = "(Lade Events...)";
+        ul.appendChild(loadingLi);
+
+        try {
+            const snap = await getDocs(collection(db, "Events"));
+            const items = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                items.push({
+                    id: docSnap.id,
+                    datum: data.Datum || "",
+                    name: data.EventName || "",
+                    kundenName: data.KundenName || ""
+                });
+            });
+
+            // sort by date descending
+            items.sort((a, b) => (a.datum || "").localeCompare(b.datum || ""));
+
+            ul.innerHTML = "";
+            items.forEach(({ id, datum, name, kundenName }) => {
+                const li = document.createElement("li");
+                const row = document.createElement("div");
+                row.className = "list-row-3";
+
+                const colDatum = document.createElement("span");
+                colDatum.textContent = datum || "—";
+
+                const colKunde = document.createElement("span");
+                colKunde.textContent = kundenName || "—";
+
+                const colEvent = document.createElement("span");
+                colEvent.textContent = name || "—";
+
+                row.appendChild(colDatum);
+                row.appendChild(colKunde);
+                row.appendChild(colEvent);
+                li.appendChild(row);
+
+                li.addEventListener("click", () => {
+                    loadEventInForm(id);
+                });
+
+                ul.appendChild(li);
+            });
+        } catch (err) {
+            console.error("Fehler beim Laden der Events:", err);
+            ul.innerHTML = "";
+            const li = document.createElement("li");
+            li.textContent = "(Fehler beim Laden der Events)";
+            ul.appendChild(li);
+        }
+    }
+
+    async function loadEventInForm(eventId) {
+        const status = document.getElementById("status");
+        try {
+            const ref = doc(db, "Events", eventId);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) {
+                status.textContent = "Event nicht gefunden.";
+                return;
+            }
+            const data = snap.data();
+            const form = document.getElementById("eventForm");
+            form.setAttribute("data-docid", eventId);
+
+            document.getElementById("eventName").value = data.EventName || "";
+            document.getElementById("eventDatum").value = data.Datum || "";
+            document.getElementById("kundeSelect").value = data.KundenID || "";
+            document.getElementById("kategorieSelect").value = data.KategorieID || "";
+            // Sorte entfernt: keine Nachladung/Belegung
+
+            status.textContent = "Event geladen.";
+            await loadBoardsForEvent(eventId);
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Laden des Events: " + (err.message ?? err);
+        }
+    }
+
+    function clearForm() {
+        const form = document.getElementById("eventForm");
+        form.reset();
+        form.removeAttribute("data-docid");
+        const tbody = document.querySelector("#eventBoardsTable tbody");
+        if (tbody) tbody.innerHTML = '<tr><td colspan="2">(Event noch nicht gespeichert)</td></tr>';
+    }
+
+    async function onSaveEvent(e) {
+        e.preventDefault();
+        const status = document.getElementById("status");
+
+        const eventName = document.getElementById("eventName").value.trim();
+        const eventDatum = document.getElementById("eventDatum").value;
+        const kundenId = document.getElementById("kundeSelect").value;
+        const kundenName = (() => {
+            const sel = document.getElementById("kundeSelect");
+            return sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : null;
+        })();
+        const kategorieId = document.getElementById("kategorieSelect").value;
+        // Sorte entfernt
+
+        if (!eventName) { status.textContent = "Eventname ist ein Pflichtfeld."; return; }
+        if (!kundenId) { status.textContent = "Kunde ist ein Pflichtfeld."; return; }
+        if (!kategorieId) { status.textContent = "Kategorie ist ein Pflichtfeld."; return; }
+        // Sorte entfernt
+        if (!eventDatum) { status.textContent = "Datum ist ein Pflichtfeld."; return; }
+
+        try {
+            status.textContent = "Speichere Event...";
+
+            const dateObj = new Date(eventDatum);
+            const data = {
+                EventName: eventName,
+                Datum: eventDatum,
+                DatumTS: Timestamp.fromDate(dateObj),
+                KundenID: kundenId,
+                KundenName: kundenName,
+                KategorieID: kategorieId
+            };
+
+            const form = document.getElementById("eventForm");
+            const docId = form.getAttribute("data-docid");
+
+            if (!docId) {
+                const docRef = await addDoc(collection(db, "Events"), data);
+                form.setAttribute("data-docid", docRef.id);
+                await loadBoardsForEvent(docRef.id);
+            } else {
+                await setDoc(doc(db, "Events", docId), data, { merge: true });
+                await loadBoardsForEvent(docId);
+            }
+
+            status.textContent = "Event gespeichert.";
+            await loadEventsListe();
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Fehler beim Speichern: " + (err.message ?? err);
+        }
+    }
+
+    async function loadBoardsForEvent(eventId) {
+        const tbody = document.querySelector("#eventBoardsTable tbody");
+        if (!tbody) return;
+        if (!eventId) {
+            tbody.innerHTML = '<tr><td colspan="2">(Event noch nicht gespeichert)</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '<tr><td colspan="2">(Lade Boards...)</td></tr>';
+        try {
+            const q = query(collection(db, "Boards"), where("EventID", "==", eventId));
+            const snap = await getDocs(q);
+            const rows = [];
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                rows.push({
+                    id: docSnap.id,
+                    name: d.Name || d.BoardName || null
+                });
+            });
+
+            tbody.innerHTML = "";
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2">(Keine Boards gefunden)</td></tr>';
+            } else {
+                rows.forEach(r => {
+                    const tr = document.createElement("tr");
+                    const tdBoard = document.createElement("td");
+                    tdBoard.textContent = r.name || r.id;
+                    const tdInfo = document.createElement("td");
+                    tdInfo.textContent = r.id;
+                    tr.appendChild(tdBoard);
+                    tr.appendChild(tdInfo);
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch (err) {
+            console.error("Fehler beim Laden der Boards:", err);
+            tbody.innerHTML = '<tr><td colspan="2">(Fehler beim Laden der Boards)</td></tr>';
+        }
+    }
+
+    main();
+</script>
+
+</body>
+</html>

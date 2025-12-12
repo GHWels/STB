@@ -100,6 +100,13 @@ h1, h2, h3 {
     max-width: 700px;
 }
 
+/* Lieferantenliste: größere Breite erlauben */
+.list-wrapper-lieferanten {
+    max-width: 900px;
+    width: 90%;
+    margin: 0 auto;
+}
+
 .form-wrapper {
     flex: 1;
     min-width: 320px;
@@ -191,7 +198,8 @@ label strong {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 2rem;
-    margin-bottom: 0.5rem;
+    row-gap: 1.25rem;
+    margin-bottom: 1rem;
     align-items: flex-start;
     max-width: 1100px;
 }
@@ -200,11 +208,35 @@ label strong {
 .field-row-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    column-gap: 1.25rem;
+    row-gap: 0.75rem;
 }
 
 .field-group {
-    margin-bottom: 0.5rem;
+    margin-bottom: 1.2rem;
+}
+
+/* Tighter spacing for labels and inputs inside field groups */
+form p {
+    margin-bottom: 0.75rem;
+}
+
+/* Align two-column rows with comfortable vertical rhythm */
+.field-row-2 .field-group p,
+.field-row-2 p {
+    margin-bottom: 0.9rem;
+}
+
+/* Improve label/input vertical rhythm */
+label strong { margin-bottom: 0.35rem; }
+input, select, textarea { line-height: 1.4; }
+
+/* Remove inline style needs; provide utility classes */
+.grid-span-two {
+    grid-column: 1 / span 2;
+}
+.vis-hidden {
+    visibility: hidden;
 }
 
 /* Kunden-Drei-Spalten-Layout ------------------------------- */
@@ -246,10 +278,12 @@ select {
     background: #ffffff;
     color: #000;
     border: 1px solid #b8b29a;
-    padding: 4px;
+    padding: 6px;
     border-radius: 4px;
     width: 100%;
     box-sizing: border-box;
+    font-family: inherit;
+    font-size: 0.95rem;
 }
 
 textarea {
@@ -281,6 +315,25 @@ textarea {
     gap: 1rem;
 }
 
+/* LIEFERANTENLISTE (breitere Website-Spalte) ------------------ */
+.list-head.list-head-lieferanten {
+    display: grid;
+    /* Slightly tighter columns to reduce total width */
+    grid-template-columns: minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(240px, 1.2fr);
+}
+
+.list-row.list-row-lieferanten {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(240px, 1.2fr);
+}
+
+/* Long URLs should not overlap adjacent columns */
+.list-row.list-row-lieferanten .list-col-uid {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .form-hint-small {
     font-size: 0.85em;
     margin-top: 0.3rem;
@@ -304,6 +357,15 @@ textarea {
 
 .form-wrapper-artikel {
     max-width: 500px;
+}
+
+/* Extra spacing between first and second form rows on Artikel.html */
+.form-wrapper-artikel form .field-row-2:first-of-type {
+    margin-top: 1rem;  /* space from form header/status */
+    margin-bottom: 1rem; /* space to next row */
+}
+.form-wrapper-artikel form .field-row-2:nth-of-type(2) {
+    margin-top: 1rem; /* ensure visible gap between row 1 and 2 */
 }
 
 .list-head-artikel {
@@ -503,6 +565,28 @@ button:hover {
 .list-row-2 {
     display: grid;
     grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    align-items: center;
+    width: 100%;
+    font-size: 0.9em;
+}
+
+/* 3-column list header/row (Datum, Kunde, Eventname) */
+.list-head-3 {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 1rem;
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #e0d89b;
+    font-size: 0.9em;
+}
+
+.list-row-3 {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
     gap: 1rem;
     align-items: center;
     width: 100%;
@@ -836,4 +920,66 @@ button:hover {
 }
 #btnSaveBoard {
     margin-top: 1.5rem;
+}
+
+/* Event form: two-column layout */
+.form-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.form-col-1 {
+    display: block;
+}
+
+.form-col-2 {
+    display: block;
+}
+
+.event-boards {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0.6rem;
+    background: #faf9f2;
+}
+
+.event-boards h3 {
+    margin: 0 0 0.6rem 0;
+    font-size: 1rem;
+}
+
+#eventBoardsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+#eventBoardsTable th, #eventBoardsTable td {
+    border: 1px solid #d0d0d0;
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+}
+
+#eventBoardsTable thead {
+    background: #e0d89b;
+}
+
+#eventBoardsTable tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#eventBoardsTable tbody tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+/* Single-row field layout to match other pages */
+.field-row-1 {
+    display: block;
+}
+.field-row-1 .field-group {
+    margin-bottom: 0.6rem;
+}
+.field-row-1 .field-group p {
+    margin-bottom: 0.45rem;
 }

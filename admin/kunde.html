@@ -24,6 +24,7 @@
             <li><a href="lieferant.html">Lieferanten</a></li>
             <li><a href="artikel.html">Artikel</a></li>
             <li><a href="kunde.html" class="active">Kunden</a></li>
+            <li><a href="event.html">Events</a></li>
             <li><a href="board.html">Board</a></li>
             <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
             <li><a href="kategorien.html">Kategorien</a></li>
@@ -122,8 +123,8 @@
                     </p>
 
                     <p>
-                        <label for="notizen"><strong>Notizen:</strong></label>
-                        <textarea id="notizen" rows="5" placeholder="Besonderheiten, Kundeninfo..."></textarea>
+                        <label for="website"><strong>WEB-Seite:</strong></label>
+                        <input type="url" id="website" placeholder="https://www.herbsthofer.at">
                     </p>
                 </div>
 
@@ -148,19 +149,22 @@
                                 <tr><td colspan="3">(Noch kein Kunde ausgewählt)</td></tr>
                             </tbody>
                         </table>
-                    </div>
-
-                    <div class="field-group">
-                        <p>
-                            <label for="boardSelect"><strong>Board auswählen:</strong></label>
-                            <select id="boardSelect" disabled>
-                                <option value="">-- Bitte wählen --</option>
-                            </select>
-                        </p>
+                            <p>
+                                <label for="website"><strong>WEB-Seite:</strong></label>
+                                <input type="url" id="website" placeholder="https://example.com">
+                            </p>
                         <p>
                             <button type="button" id="btnAddBoard" disabled>Board hinzufügen</button>
                         </p>
                     </div>
+                </div>
+                
+                <!-- Notizen über zwei Spalten unter Adresse/Land und Kontakt -->
+                <div class="grid-span-two">
+                    <p>
+                        <label for="notizen"><strong>Notizen:</strong></label>
+                        <textarea id="notizen" rows="5" placeholder="Besonderheiten, Kundeninfo..."></textarea>
+                    </p>
                 </div>
             </div>
 
@@ -182,11 +186,12 @@
         getDocs,
         updateDoc,
         arrayUnion,
-        arrayRemove
+        arrayRemove,
+        addDoc
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let db = null;
-    let currentKundenNr = null;
+    let currentKundenId = null;
 
     async function main() {
         const status = document.getElementById("kundenStatus");
@@ -208,7 +213,7 @@
                 clearForm();
                 clearBoardsListe();
                 disableBoardSelection();
-                currentKundenNr = null;
+                currentKundenId = null;
                 status.textContent = "Neuer Kunde – bitte Daten eingeben.";
             });
 
@@ -298,11 +303,11 @@
             }
 
             const data = snap.data();
-            currentKundenNr = kundenId;
+            currentKundenId = kundenId;
 
                 const uidInput = document.getElementById("kundenUid");
-                uidInput.value = data.UID || kundenId || "";
-                uidInput.readOnly = true;
+                uidInput.value = data.UID || "";
+                uidInput.readOnly = false;
             document.getElementById("kundenName").value = data.Name || "";
             document.getElementById("strasse").value    = data.Strasse || "";
             document.getElementById("plz").value        = data.PLZ || "";
@@ -310,9 +315,16 @@
             document.getElementById("land").value       = data.Land || "";
             document.getElementById("telefon").value    = data.Telefon || "";
             document.getElementById("email").value      = data.Email || "";
+            document.getElementById("website").value    = data.Website || "";
             document.getElementById("notizen").value    = data.Notizen || "";
 
-            status.textContent = "Kunde " + (data.Name || kundenId) + " geladen.";
+            const notizenPreview = (data.Notizen || "").trim();
+            if (notizenPreview) {
+                const shortNote = notizenPreview.length > 120 ? (notizenPreview.slice(0, 120) + "…") : notizenPreview;
+                status.textContent = "Kunde " + (data.Name || kundenId) + " geladen – Notizen: " + shortNote;
+            } else {
+                status.textContent = "Kunde " + (data.Name || kundenId) + " geladen.";
+            }
 
             const boards = Array.isArray(data.Boards) ? data.Boards : [];
             renderBoardsListe(boards);
@@ -386,25 +398,37 @@
         const land       = document.getElementById("land").value.trim();
         const telefon    = document.getElementById("telefon").value.trim();
         const email      = document.getElementById("email").value.trim();
+        const website    = document.getElementById("website").value.trim();
         const notizen    = document.getElementById("notizen").value.trim();
 
-            if (!kundenUid) {
-            status.textContent = "Bitte mindestens eine Nummer eingeben (UID oder Betriebsnummer).";
-            return;
-        }
+        // UID optional als Feld; Firestore vergibt die Dokument-ID
         if (!kundenName) {
             status.textContent = "Name darf nicht leer sein.";
             return;
         }
 
+        // einfache Validierung: wenn Website gesetzt ist, muss sie eine gültige URL sein
+        if (website) {
+            try {
+                // erlaubt relative Fehler früh zu erkennen
+                const u = new URL(website);
+                // optional: nur http/https zulassen
+                if (u.protocol !== "http:" && u.protocol !== "https:") {
+                    status.textContent = "WEB-Seite muss mit http(s) beginnen.";
+                    return;
+                }
+            } catch {
+                status.textContent = "Bitte eine gültige URL für die WEB-Seite angeben.";
+                return;
+            }
+        }
+
         try {
             status.textContent = "Speichere Kunde...";
 
-                // Verwende UID als Dokument-ID
-                const docId = kundenUid;
-            const ref = doc(db, "Kunden", currentKundenNr || docId);
-            
-            await setDoc(ref, {
+            let kundenDocId = currentKundenId;
+
+            const kundenData = {
                 UID: kundenUid,
                 Name: kundenName,
                 Strasse: strasse || null,
@@ -413,11 +437,20 @@
                 Land: land || null,
                 Telefon: telefon || null,
                 Email: email || null,
+                Website: website || null,
                 Notizen: notizen || null
                 // Boards bleibt unverändert
-            }, { merge: true });
+            };
 
-            currentKundenNr = docId;
+            if (!kundenDocId) {
+                const docRef = await addDoc(collection(db, "Kunden"), kundenData);
+                kundenDocId = docRef.id;
+            } else {
+                const ref = doc(db, "Kunden", kundenDocId);
+                await setDoc(ref, kundenData, { merge: true });
+            }
+
+            currentKundenId = kundenDocId;
 
             status.textContent = "Kunde erfolgreich gespeichert.";
             await loadKundenListe();
@@ -513,7 +546,7 @@
         const boardSelect = document.getElementById("boardSelect");
         const boardId = boardSelect.value.trim();
 
-        if (!currentKundenNr) {
+        if (!currentKundenId) {
             status.textContent = "Bitte zuerst einen Kunden auswählen oder speichern.";
             return;
         }
@@ -525,7 +558,7 @@
         try {
             status.textContent = "Füge Board hinzu...";
 
-            const refKunde = doc(db, "Kunden", currentKundenNr);
+            const refKunde = doc(db, "Kunden", currentKundenId);
             await updateDoc(refKunde, {
                 Boards: arrayUnion(boardId)
             }).catch(async err => {
@@ -553,7 +586,7 @@
     async function removeBoard(boardId) {
         const status = document.getElementById("kundenStatus");
 
-        if (!currentKundenNr) return;
+        if (!currentKundenId) return;
 
         if (!confirm("Board \"" + boardId + "\" wirklich vom Kunden entfernen?")) {
             return;
@@ -562,7 +595,7 @@
         try {
             status.textContent = "Entferne Board...";
 
-            const refKunde = doc(db, "Kunden", currentKundenNr);
+            const refKunde = doc(db, "Kunden", currentKundenId);
             await updateDoc(refKunde, {
                 Boards: arrayRemove(boardId)
             });

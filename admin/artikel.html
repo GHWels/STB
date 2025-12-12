@@ -23,6 +23,7 @@
             <li><a href="lieferant.html">Lieferanten</a></li>
             <li><a href="artikel.html" class="active">Artikel</a></li>
             <li><a href="kunde.html">Kunden</a></li>
+            <li><a href="event.html">Events</a></li>
             <li><a href="board.html">Board</a></li>
             <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
             <li><a href="kategorien.html">Kategorien</a></li>
@@ -70,15 +71,18 @@
         <p id="status"></p>
 
         <form id="artikelForm">
-            <!-- Zeile 2: ArtikelID + EAN-Code -->
+            <!-- Zeile 2: ArtikelID (Spalte 1) + Firestore-Dokument-ID (Spalte 2) -->
             <div class="field-row-2 field-group">
                 <p>
                     <label for="artikelId"><strong>ArtikelID:</strong></label>
                     <input type="text" id="artikelId" required>
-                </p>
-                <p>
+                    <br>
                     <label for="eanCode"><strong>EAN-Code:</strong></label>
                     <input type="text" id="eanCode" placeholder="z.B. 9001234567890">
+                </p>
+                <p>
+                    <label for="artikelDocId"><strong>ID (Firestore Dokument-ID):</strong></label>
+                    <input type="text" id="artikelDocId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
                 </p>
             </div>
 
@@ -86,13 +90,13 @@
             <div class="field-row-2 field-group">
                 <p>
                     <label for="kategorieSelect"><strong>Kategorie:</strong></label>
-                    <select id="kategorieSelect">
+                    <select id="kategorieSelect" required>
                         <option value="">-- Bitte wählen --</option>
                     </select>
                 </p>
                 <p>
                     <label for="sorteSelect"><strong>Sorte:</strong></label>
-                    <select id="sorteSelect">
+                    <select id="sorteSelect" required>
                         <option value="">-- Bitte wählen --</option>
                     </select>
                 </p>
@@ -100,7 +104,7 @@
 
             <!-- Zeile 4: Bezeichnung + Jahrgang -->
             <div class="field-row-2 field-group">
-                <p style="grid-column: 1 / span 2;">
+                <p class="grid-span-two">
                     <label for="bezeichnung"><strong>Bezeichnung:</strong></label>
                     <input type="text" id="bezeichnung" placeholder="z.B. Edelbrand">
                 </p>
@@ -108,9 +112,9 @@
             <div class="field-row-2 field-group">
                 <p>
                     <label for="jahrgang"><strong>Jahrgang:</strong></label>
-                    <input type="number" id="jahrgang" class="input-kategorie-width" placeholder="z.B. 2023" min="1900" max="2100">
+                    <input type="number" id="jahrgang" class="input-kategorie-width" placeholder="z.B. 2023" min="1900" max="2100" required>
                 </p>
-                <p style="visibility:hidden;">
+                <p class="vis-hidden">
                     <!-- Unsichtbares Element zur Spaltenausrichtung -->
                     <span></span>
                 </p>
@@ -197,7 +201,8 @@
         setDoc,
         getDocs,
         getDoc,
-        collection
+        collection,
+        addDoc
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let db = null;
@@ -277,9 +282,9 @@
                 const sorte = data.Sorte || "-";
                 const bezeichnung = data.Bezeichnung || "-";
                 const jahrgang = data.Jahrgang || "-";
-                const lieferantUID = data.LieferantUID || "";
+                const lieferantID = data.LieferantID || "";
 
-                if (lieferantUID !== filterValue) return;
+                if (lieferantID !== filterValue) return;
 
                 const li = document.createElement("li");
                 const row = document.createElement("div");
@@ -339,9 +344,12 @@
             const data = snap.data();
             currentArtikelId = artikelId;
 
+            const docIdEl = document.getElementById("artikelDocId");
+            if (docIdEl) docIdEl.value = artikelId;
+
             document.getElementById("artikelId").value = data.ArtikelID || artikelId;
             document.getElementById("eanCode").value = data.EAN || "";
-            document.getElementById("lieferantSelect").value = data.LieferantUID || "";
+            document.getElementById("lieferantSelect").value = data.LieferantID || "";
             document.getElementById("ekp").value = data.EKP || "";
             document.getElementById("vkp").value = data.VKP || "";
             document.getElementById("jahrgang").value = data.Jahrgang || "";
@@ -363,6 +371,8 @@
         const lieferantValue = document.getElementById("lieferantSelect").value;
         document.getElementById("artikelForm").reset();
         document.getElementById("lieferantSelect").value = lieferantValue;
+        const docIdEl = document.getElementById("artikelDocId");
+        if (docIdEl) docIdEl.value = "";
     }
 
     async function loadLieferanten() {
@@ -408,35 +418,53 @@
         const beschreibung = document.getElementById("beschreibung").value.trim();
 
         const sel = document.getElementById("lieferantSelect");
-        const lieferantUID = sel.value || null;
+        const lieferantID = sel.value || null;
         const lieferantName = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : null;
 
         if (!artikelId) {
             status.textContent = "ArtikelID darf nicht leer sein.";
             return;
         }
+        if (!jahrgang) {
+            status.textContent = "Jahrgang ist ein Pflichtfeld.";
+            return;
+        }
+        if (!kategorie) {
+            status.textContent = "Kategorie ist ein Pflichtfeld.";
+            return;
+        }
+        if (!sorte) {
+            status.textContent = "Sorte ist ein Pflichtfeld.";
+            return;
+        }
 
         try {
-
-            const docId = currentArtikelId || artikelId;
-            const ref = doc(db, "Artikel", docId);
-
-            await setDoc(ref, {
+            const artikelData = {
                 ArtikelID: artikelId,
                 EAN: eanCode || null,
-                LieferantUID: lieferantUID,
+                LieferantID: lieferantID,
                 LieferantName: lieferantName,
                 EKP: ekp ? Number(ekp) : null,
                 VKP: vkp ? Number(vkp) : null,
                 Jahrgang: jahrgang || null,
                 Sorte: sorte || null,
                 Kategorie: kategorie || null,
-                    Bezeichnung: bezeichnung || null,
+                Bezeichnung: bezeichnung || null,
                 Info: info || null,
                 Beschreibung: beschreibung || null
-            }, { merge: true });
+            };
 
-            currentArtikelId = docId;
+            if (!currentArtikelId) {
+                const docRef = await addDoc(collection(db, "Artikel"), artikelData);
+                currentArtikelId = docRef.id;
+                const docIdEl = document.getElementById("artikelDocId");
+                if (docIdEl) docIdEl.value = currentArtikelId;
+            } else {
+                const ref = doc(db, "Artikel", currentArtikelId);
+                await setDoc(ref, artikelData, { merge: true });
+                const docIdEl = document.getElementById("artikelDocId");
+                if (docIdEl) docIdEl.value = currentArtikelId;
+            }
 
             await loadArtikelListe();
             clearForm();
