@@ -35,14 +35,14 @@
 
     <!-- Event-Liste links -->
     <div class="list-wrapper list-wrapper-events">
-        <h2>Event-Liste</h2>
-        
-        <p style="margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">Event-Liste</h2>
+            
             <label style="display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
                 <input type="checkbox" id="showOnlyFuture" checked>
                 <strong>Nur zukünftige Events anzeigen</strong>
             </label>
-        </p>
+        </div>
 
         <div class="list-head-3" id="eventHeader">
             <span data-col="datum">Datum</span>
@@ -68,21 +68,14 @@
                 <form id="eventForm">
                     <!-- Zeile 1: Kunde -->
                     <div class="field-row-1 field-group">
-                        <p>
+                        <p style="margin-top: 0;">
                             <label for="kundeAnzeige"><strong>Kunde:</strong></label>
                             <input type="text" id="kundeAnzeige" readonly placeholder="Wird automatisch aus Event-Liste übernommen">
                             <input type="hidden" id="kundenId">
                         </p>
                     </div>
-                    <!-- Zeile 2: Eventname -->
-                    <div class="field-row-1 field-group">
-                        <p>
-                            <label for="eventName"><strong>Eventname:</strong></label>
-                            <input type="text" id="eventName" placeholder="z.B. Verkostung im Dezember" required>
-                        </p>
-                    </div>
 
-                    <!-- Zeile 3: Datum -->
+                    <!-- Zeile 2: Datum -->
                     <div class="field-row-1 field-group">
                         <p>
                             <label for="eventDatum"><strong>Datum:</strong></label>
@@ -90,7 +83,13 @@
                         </p>
                     </div>
 
-                    <!-- Zeile 3: Kunde -->
+                    <!-- Zeile 3: Eventname -->
+                    <div class="field-row-1 field-group">
+                        <p>
+                            <label for="eventName"><strong>Eventname:</strong></label>
+                            <input type="text" id="eventName" placeholder="z.B. Verkostung im Dezember" required>
+                        </p>
+                    </div>
 
                     <!-- Zeile 4: Kategorie -->
                     <div class="field-row-1 field-group">
@@ -114,6 +113,12 @@
                 </form>
             </div>
             <div class="form-col-2">
+                <div class="field-row-1 field-group">
+                    <p style="margin-top: 0;">
+                        <label for="eventDocId"><strong>ID (Firestore Dokument-ID):</strong></label>
+                        <input type="text" id="eventDocId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
+                    </p>
+                </div>
                 <section class="event-boards">
                     <h3>Boards im Event</h3>
                     <table id="eventBoardsTable">
@@ -347,6 +352,7 @@
             document.getElementById("kundenId").value = data.KundenID || "";
             document.getElementById("kategorieSelect").value = data.KategorieID || "";
             document.getElementById("beschreibung").value = data.Beschreibung || "";
+            document.getElementById("eventDocId").value = eventId;
             // Sorte entfernt: keine Nachladung/Belegung
 
             await loadBoardsForEvent(eventId);
@@ -360,6 +366,7 @@
         const form = document.getElementById("eventForm");
         form.reset();
         form.removeAttribute("data-docid");
+        document.getElementById("eventDocId").value = "";
         const tbody = document.querySelector("#eventBoardsTable tbody");
         if (tbody) tbody.innerHTML = '<tr><td colspan="2">(Event noch nicht gespeichert)</td></tr>';
     }
@@ -400,9 +407,11 @@
             if (!docId) {
                 const docRef = await addDoc(collection(db, "Events"), data);
                 form.setAttribute("data-docid", docRef.id);
+                document.getElementById("eventDocId").value = docRef.id;
                 await loadBoardsForEvent(docRef.id);
             } else {
                 await setDoc(doc(db, "Events", docId), data, { merge: true });
+                document.getElementById("eventDocId").value = docId;
                 await loadBoardsForEvent(docId);
             }
 
