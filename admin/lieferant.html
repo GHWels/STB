@@ -39,10 +39,10 @@
         <h2>Lieferanten-Liste</h2>
         <p class="hint">Klicke auf einen Eintrag, um ihn zu bearbeiten.</p>
 
-        <div class="list-head list-head-lieferanten">
-            <span>WEB-Seite</span>
-            <span>Name</span>
-            <span>Firmenname</span>
+        <div class="list-head list-head-lieferanten" id="lieferantenHeader">
+            <span data-col="website">WEB-Seite</span>
+            <span data-col="name">Name</span>
+            <span data-col="ort">Ort</span>
         </div>
 
         <ul id="lieferantenListe">
@@ -65,7 +65,7 @@
                     <div>
                         <p>
                             <label for="website"><strong>Webseite:</strong></label>
-                            <input type="url" id="website">
+                            <input type="url" id="website"  placeholder="https://herbsthofer.at" required>
                         </p>
                         <p>
                             <label for="firmenname"><strong>Firmenname:</strong></label>
@@ -242,6 +242,18 @@
         }
     }
 
+    let lieferantenSort = { by: 'name', dir: 'asc' }; // dir: 'asc' | 'desc'
+
+    function sortLieferanten(items) {
+        const { by, dir } = lieferantenSort;
+        const factor = dir === 'asc' ? 1 : -1;
+        return items.sort((a, b) => {
+            const va = (a[by] || '').toString().toLowerCase();
+            const vb = (b[by] || '').toString().toLowerCase();
+            return va.localeCompare(vb, 'de', { sensitivity: 'base' }) * factor;
+        });
+    }
+
     async function loadLieferantenListe() {
         const ul = document.getElementById("lieferantenListe");
         ul.innerHTML = "";
@@ -269,13 +281,12 @@
                     id: docSnap.id,
                     uid: (data.Website || "").toString(),
                     name: (data.Name || "").toString(),
-                    firma: data.Firmenname || ""
+                    ort: data.Ort || ""
                 });
             });
+            sortLieferanten(items);
 
-            items.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-
-            items.forEach(({ id: firestoreId, uid, name, firma }) => {
+            items.forEach(({ id: firestoreId, uid, name, ort }) => {
                 const li = document.createElement("li");
                 const row = document.createElement("div");
                 row.className = "list-row list-row-lieferanten";
@@ -289,8 +300,8 @@
                         a.href = uid;
                         a.target = "_blank";
                         a.rel = "noopener noreferrer";
-                        // Use domain as link text for readability
-                        a.textContent = u.hostname;
+                        // Use domain without leading 'www.' as link text
+                        a.textContent = u.hostname.replace(/^www\./, "");
                         // Prevent row click when clicking the link
                         a.addEventListener("click", ev => ev.stopPropagation());
                         colUid.appendChild(a);
@@ -306,13 +317,13 @@
                 colName.className = "list-col-name";
                 colName.textContent = name;
 
-                const colFirma = document.createElement("span");
-                colFirma.className = "list-col-firma";
-                colFirma.textContent = firma;
+                const colOrt = document.createElement("span");
+                colOrt.className = "list-col-firma";
+                colOrt.textContent = ort;
 
                 row.appendChild(colUid);
                 row.appendChild(colName);
-                row.appendChild(colFirma);
+                row.appendChild(colOrt);
                 li.appendChild(row);
 
                 li.addEventListener("click", () => {
@@ -329,6 +340,29 @@
             li.textContent = "(Fehler beim Laden der Lieferanten)";
             ul.appendChild(li);
         }
+    }
+
+    // Header click sorting
+    const lieferantenHeader = document.getElementById('lieferantenHeader');
+    if (lieferantenHeader) {
+        lieferantenHeader.addEventListener('click', async (ev) => {
+            const target = ev.target;
+            if (!(target instanceof HTMLElement)) return;
+            const col = target.dataset.col;
+            if (!col) return;
+            // map dataset to item keys
+            const keyMap = { website: 'uid', name: 'name', ort: 'ort' };
+            const byKey = keyMap[col];
+            if (!byKey) return;
+            // toggle direction if same column
+            if (lieferantenSort.by === byKey) {
+                lieferantenSort.dir = lieferantenSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                lieferantenSort.by = byKey;
+                lieferantenSort.dir = 'asc';
+            }
+            await loadLieferantenListe();
+        });
     }
 
     async function loadLieferantInForm(uid) {

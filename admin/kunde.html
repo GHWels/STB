@@ -42,10 +42,10 @@
             <span id="kundenStatus" class="hint"></span>
         </div>
 
-        <div class="list-head list-head-kunden">
-            <span>WEB-Seite</span>
-            <span>Name</span>
-            <span>Ort</span>
+        <div class="list-head list-head-kunden" id="kundenHeader">
+            <span data-col="website">WEB-Seite</span>
+            <span data-col="name">Name</span>
+            <span data-col="ort">Ort</span>
         </div>
 
         <ul id="kundenListe">
@@ -63,7 +63,8 @@
         <form id="kundenForm">
 
             <!-- Adress- / Kontaktzeilen mit NFC-Spalte -->
-            <div class="kunde-three-column">
+            <div style="display:flex; gap:1rem; align-items:flex-start;">
+                <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
                 <!-- Spalte 1: Adresse -->
                 <div>
                     <p>
@@ -117,6 +118,13 @@
                         <label for="notizen"><strong>Notizen:</strong></label>
                         <textarea id="notizen" rows="5" placeholder="Besonderheiten, Kundeninfo..."></textarea>
                     </p>
+                </div>
+
+                
+            </div>
+                            <!-- Spalte 3: unabhängig von Spalten 1+2 -->
+                <div style="flex:0 0 32%; min-width:280px;">
+                    <!-- Spalte 3 -->                    
                 </div>
             </div>
 
@@ -174,6 +182,18 @@
         }
     }
 
+    let kundenSort = { by: 'name', dir: 'asc' };
+
+    function sortKunden(items) {
+        const { by, dir } = kundenSort;
+        const factor = dir === 'asc' ? 1 : -1;
+        return items.sort((a, b) => {
+            const va = (a[by] || '').toString().toLowerCase();
+            const vb = (b[by] || '').toString().toLowerCase();
+            return va.localeCompare(vb, 'de', { sensitivity: 'base' }) * factor;
+        });
+    }
+
     async function loadKundenListe() {
         const ul = document.getElementById("kundenListe");
         ul.innerHTML = "";
@@ -194,12 +214,20 @@
 
             ul.innerHTML = "";
 
+            const items = [];
             snap.forEach(docSnap => {
                 const data = docSnap.data();
-                const website = (data.Website || "").toString();
-                const name = data.Name || "";
-                const ort  = data.Ort || "";
+                items.push({
+                    id: docSnap.id,
+                    website: (data.Website || '').toString(),
+                    name: data.Name || '',
+                    ort: data.Ort || ''
+                });
+            });
 
+            sortKunden(items);
+
+            items.forEach(({ id, website, name, ort }) => {
                 const li = document.createElement("li");
                 const row = document.createElement("div");
                 row.className = "list-row";
@@ -209,7 +237,6 @@
                 if (website) {
                     const a = document.createElement("a");
                     a.href = website;
-                    // Show only the domain as link text when possible
                     try {
                         const u = new URL(website);
                         const host = u.hostname.replace(/^www\./, "");
@@ -219,7 +246,6 @@
                     }
                     a.target = "_blank";
                     a.rel = "noopener noreferrer";
-                    // Prevent row click when clicking the link
                     a.addEventListener("click", ev => ev.stopPropagation());
                     colNr.appendChild(a);
                 } else {
@@ -240,7 +266,7 @@
                 li.appendChild(row);
 
                 li.addEventListener("click", () => {
-                    loadKundeInForm(docSnap.id);
+                    loadKundeInForm(id);
                 });
 
                 ul.appendChild(li);
@@ -253,6 +279,27 @@
             li.textContent = "(Fehler beim Laden der Kunden)";
             ul.appendChild(li);
         }
+    }
+
+    // Header click sorting
+    const kundenHeader = document.getElementById('kundenHeader');
+    if (kundenHeader) {
+        kundenHeader.addEventListener('click', async (ev) => {
+            const target = ev.target;
+            if (!(target instanceof HTMLElement)) return;
+            const col = target.dataset.col;
+            if (!col) return;
+            const keyMap = { website: 'website', name: 'name', ort: 'ort' };
+            const byKey = keyMap[col];
+            if (!byKey) return;
+            if (kundenSort.by === byKey) {
+                kundenSort.dir = kundenSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                kundenSort.by = byKey;
+                kundenSort.dir = 'asc';
+            }
+            await loadKundenListe();
+        });
     }
 
     async function loadKundeInForm(kundenId) {
@@ -379,4 +426,10 @@
 
     // Boards-Liste entfernt
 
-    // Boards-Hinzufügen/
+    // Boards-Hinzufügen/Entfernen entfernt
+
+    main();
+</script>
+
+</body>
+</html>
