@@ -71,80 +71,74 @@
         <p id="status"></p>
 
         <form id="artikelForm">
-            <!-- Zeile 2: ArtikelID (Spalte 1) + Firestore-Dokument-ID (Spalte 2) -->
-            <div class="field-row-2 field-group">
-                <p>
-                    <label for="artikelId"><strong>ArtikelID:</strong></label>
-                    <input type="text" id="artikelId" required>
-                    <br>
-                    <label for="eanCode"><strong>EAN-Code:</strong></label>
-                    <input type="text" id="eanCode" placeholder="z.B. 9001234567890">
-                </p>
-                <p>
-                    <label for="artikelDocId"><strong>ID (Firestore Dokument-ID):</strong></label>
-                    <input type="text" id="artikelDocId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
-                </p>
-            </div>
+            <!-- 3-Spalten Layout -->
+            <div style="display:flex; gap:1rem; align-items:flex-start;">
+                <div style="flex:1; display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                    
+                    <!-- Spalte 1 -->
+                    <div>
+                        <p>
+                            <label for="artikelId"><strong>ArtikelID:</strong></label>
+                            <input type="text" id="artikelId" required>
+                        </p>
+                        <p>
+                            <label for="bezeichnung"><strong>Bezeichnung:</strong></label>
+                            <input type="text" id="bezeichnung" placeholder="z.B. Edelbrand" required>
+                        </p>
+                        <p>
+                            <label for="kategorieSelect"><strong>Kategorie:</strong></label>
+                            <select id="kategorieSelect" required>
+                                <option value="">-- Bitte wählen --</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label for="ekp"><strong>EKP (Einkaufspreis):</strong></label>
+                            <input type="number" step="0.01" id="ekp" placeholder="0.00">
+                        </p>
+                    </div>
 
-            <!-- Zeile 3: Kategorie + Sorte -->
-            <div class="field-row-2 field-group">
-                <p>
-                    <label for="kategorieSelect"><strong>Kategorie:</strong></label>
-                    <select id="kategorieSelect" required>
-                        <option value="">-- Bitte wählen --</option>
-                    </select>
-                </p>
-                <p>
-                    <label for="sorteSelect"><strong>Sorte:</strong></label>
-                    <select id="sorteSelect" required>
-                        <option value="">-- Bitte wählen --</option>
-                    </select>
-                </p>
-            </div>
+                    <!-- Spalte 2 -->
+                    <div>
+                        <p>
+                            <label for="eanCode"><strong>EAN-Code:</strong></label>
+                            <input type="text" id="eanCode" placeholder="z.B. 9001234567890">
+                        </p>
+                        <p>
+                            <label for="jahrgang"><strong>Jahrgang:</strong></label>
+                            <input type="number" id="jahrgang" placeholder="z.B. 2023" min="1900" max="2100" required>
+                        </p>
+                        <p>
+                            <label for="sorteSelect"><strong>Sorte:</strong></label>
+                            <select id="sorteSelect" required>
+                                <option value="">-- Bitte wählen --</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label for="vkp"><strong>VKP (Verkaufspreis):</strong></label>
+                            <input type="number" step="0.01" id="vkp" placeholder="0.00">
+                        </p>
+                    </div>
 
-            <!-- Zeile 4: Bezeichnung + Jahrgang -->
-            <div class="field-row-2 field-group">
-                <p class="grid-span-two">
-                    <label for="bezeichnung"><strong>Bezeichnung:</strong></label>
-                    <input type="text" id="bezeichnung" placeholder="z.B. Edelbrand">
-                </p>
-            </div>
-            <div class="field-row-2 field-group">
-                <p>
-                    <label for="jahrgang"><strong>Jahrgang:</strong></label>
-                    <input type="number" id="jahrgang" class="input-kategorie-width" placeholder="z.B. 2023" min="1900" max="2100" required>
-                </p>
-                <p class="vis-hidden">
-                    <!-- Unsichtbares Element zur Spaltenausrichtung -->
-                    <span></span>
-                </p>
-            </div>
+                    <!-- Beschreibung über beide Spalten -->
+                    <div style="grid-column: 1 / span 2;">
+                        <p>
+                            <label for="beschreibung"><strong>Beschreibung:</strong></label>
+                            <textarea id="beschreibung" rows="6" placeholder="Details zum Artikel"></textarea>
+                        </p>
+                        <p>
+                            <label for="info"><strong>INFO:</strong></label>
+                            <input type="text" id="info" placeholder="Info über Verfügbarkeit">
+                        </p>
+                    </div>
+                </div>
 
-            <!-- Zeile 5: EKP + VKP -->
-            <!-- Zeile 6: Info und Beschreibung -->
-            <div class="field-row-1 field-group">
-                <p>
-                    <label for="info"><strong>INFO:</strong></label>
-                    <input type="text" id="info" placeholder="Kurze Info zum Artikel">
-                </p>
-            </div>
-            <div class="field-row-1 field-group">
-                <p>
-                    <label for="beschreibung"><strong>Beschreibung:</strong></label>
-                    <textarea id="beschreibung" rows="20" placeholder="Details zum Artikel"></textarea>
-                </p>
-            </div>
-
-            <!-- Zeile 7: EKP + VKP (verschoben) -->
-            <div class="field-row-2 field-group">
-                <p>
-                    <label for="ekp"><strong>EKP (Einkaufspreis):</strong></label>
-                    <input type="number" step="0.01" id="ekp" placeholder="0.00">
-                </p>
-                <p>
-                    <label for="vkp"><strong>VKP (Verkaufspreis):</strong></label>
-                    <input type="number" step="0.01" id="vkp" placeholder="0.00">
-                </p>
+                <!-- Spalte 3: unabhängig von Spalten 1+2 -->
+                <div style="flex:0 0 32%; min-width:280px;">
+                    <p>
+                        <label for="artikelDocId"><strong>ID (Firestore Dokument-ID):</strong></label>
+                        <input type="text" id="artikelDocId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
+                    </p>
+                </div>
             </div>
 
             <button type="submit" class="btn-save-customer">Artikel speichern</button>

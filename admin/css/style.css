@@ -416,16 +416,8 @@ textarea {
 }
 
 .form-wrapper-artikel {
-    max-width: 500px;
-}
-
-/* Extra spacing between first and second form rows on Artikel.html */
-.form-wrapper-artikel form .field-row-2:first-of-type {
-    margin-top: 1rem;  /* space from form header/status */
-    margin-bottom: 1rem; /* space to next row */
-}
-.form-wrapper-artikel form .field-row-2:nth-of-type(2) {
-    margin-top: 1rem; /* ensure visible gap between row 1 and 2 */
+    flex: 1;
+    min-width: 600px;
 }
 
 .list-head-artikel {
