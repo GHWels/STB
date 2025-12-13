@@ -107,6 +107,13 @@ h1, h2, h3 {
     margin: 0 auto;
 }
 
+/* Event-Liste: gleiche Breite wie Lieferantenliste */
+.list-wrapper-events {
+    max-width: 900px;
+    width: 90%;
+    margin: 0 auto;
+}
+
 .form-wrapper {
     flex: 1;
     min-width: 320px;
@@ -293,38 +300,67 @@ textarea {
 /* KUNDENLISTE -------------------------------------------------- */
 
 .list-wrapper-kunden {
-    min-width: 500px;
-    max-width: 650px;
+    /* Angleichen an Lieferantenliste */
+    max-width: 900px;
+    width: 90%;
+    margin: 0 auto;
 }
 
 .list-head-kunden {
     display: grid;
-    grid-template-columns: 240px 250px 1fr;
+    /* Schmalere WEB-Seite, mehr Platz für Name */
+    grid-template-columns: minmax(140px, 0.6fr) minmax(220px, 1.2fr) minmax(240px, 1fr);
     gap: 1rem;
     padding: 0.4em 0.6em;
     font-weight: bold;
     border: 1px solid #ccc;
     border-bottom: none;
-    background: #f9f9f9;
+    /* Hintergrund an Lieferanten-Liste angleichen */
+    background: #e0d89b;
+    font-size: 0.9em;
+}
+.list-head,
+.list-head-kunden,
+.list-head-artikel,
+.list-head-2,
+.list-head-3,
+.list-head-board {
+    padding: 0.4em 0.6em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #e0d89b;
+    font-size: 0.9em;
+}
+
+/* Unified list row spacing */
+.list-row,
+.list-head-kunden + ul .list-row,
+.list-row-2,
+.list-row-3,
+.list-row-board {
+    gap: 1rem;
+    align-items: center;
     font-size: 0.9em;
 }
 
 .list-head-kunden + ul .list-row {
     display: grid;
-    grid-template-columns: 240px 250px 1fr;
+    /* Schmalere WEB-Seite, mehr Platz für Name */
+    grid-template-columns: minmax(140px, 0.6fr) minmax(220px, 1.2fr) minmax(240px, 1fr);
     gap: 1rem;
 }
 
 /* LIEFERANTENLISTE (breitere Website-Spalte) ------------------ */
 .list-head.list-head-lieferanten {
     display: grid;
-    /* Slightly tighter columns to reduce total width */
-    grid-template-columns: minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(240px, 1.2fr);
+    /* Schmalere WEB-Seite, mehr Platz für Name */
+    grid-template-columns: minmax(140px, 0.6fr) minmax(220px, 1.2fr) minmax(240px, 1fr);
 }
 
 .list-row.list-row-lieferanten {
     display: grid;
-    grid-template-columns: minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(240px, 1.2fr);
+    grid-template-columns: minmax(140px, 0.6fr) minmax(220px, 1.2fr) minmax(240px, 1fr);
 }
 
 /* Long URLs should not overlap adjacent columns */
@@ -376,7 +412,8 @@ textarea {
     font-weight: bold;
     border: 1px solid #ccc;
     border-bottom: none;
-    background: #f9f9f9;
+    /* Hintergrund an andere Listen-Header angleichen */
+    background: #e0d89b;
     font-size: 0.9em;
 }
 
@@ -574,7 +611,8 @@ button:hover {
 /* 3-column list header/row (Datum, Kunde, Eventname) */
 .list-head-3 {
     display: grid;
-    grid-template-columns: 200px 1fr 1fr;
+    /* Event-Liste: schmaleres Datum, mehr Platz für Kunde */
+    grid-template-columns: minmax(140px, 0.6fr) minmax(220px, 1.2fr) minmax(240px, 1fr);
     gap: 1rem;
     padding: 0.4em 0.6em;
     font-weight: bold;
@@ -586,7 +624,8 @@ button:hover {
 
 .list-row-3 {
     display: grid;
-    grid-template-columns: 200px 1fr 1fr;
+    /* Event-Liste: schmaleres Datum, mehr Platz für Kunde */
+    grid-template-columns: minmax(140px, 0.6fr) minmax(220px, 1.2fr) minmax(240px, 1fr);
     gap: 1rem;
     align-items: center;
     width: 100%;
@@ -982,4 +1021,28 @@ button:hover {
 }
 .field-row-1 .field-group p {
     margin-bottom: 0.45rem;
+}
+
+/* EVENTLISTE – analog zur Kundenliste ------------------------- */
+#eventListe {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    border: 1px solid #ccc;
+    max-height: 400px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+#eventListe li {
+    padding: 0.5em 0.6em;
+    cursor: pointer;
+}
+
+#eventListe li:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+#eventListe li:nth-child(even) {
+    background-color: #f5f5f5;
 }

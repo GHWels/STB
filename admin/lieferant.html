@@ -289,7 +289,10 @@
                         a.href = uid;
                         a.target = "_blank";
                         a.rel = "noopener noreferrer";
-                        a.textContent = uid;
+                        // Use domain as link text for readability
+                        a.textContent = u.hostname;
+                        // Prevent row click when clicking the link
+                        a.addEventListener("click", ev => ev.stopPropagation());
                         colUid.appendChild(a);
                     } catch {
                         // not a valid absolute URL, show as plain text

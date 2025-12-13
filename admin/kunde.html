@@ -38,7 +38,7 @@
     <div class="list-wrapper list-wrapper-kunden">
         <h2>Kunden-Liste</h2>
         <div class="kunden-hint-row">
-            <p class="hint">Klicke auf einen Kunden, um die Daten zu bearbeiten.</p>
+            <p class="hint">Klicke auf einen Eintrag, um ihn zu bearbeiten.</p>
             <span id="kundenStatus" class="hint"></span>
         </div>
 
@@ -206,7 +206,25 @@
 
                 const colNr = document.createElement("span");
                 colNr.className = "list-col-uid";
-                colNr.textContent = website || "—";
+                if (website) {
+                    const a = document.createElement("a");
+                    a.href = website;
+                    // Show only the domain as link text when possible
+                    try {
+                        const u = new URL(website);
+                        const host = u.hostname.replace(/^www\./, "");
+                        a.textContent = host;
+                    } catch {
+                        a.textContent = website;
+                    }
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer";
+                    // Prevent row click when clicking the link
+                    a.addEventListener("click", ev => ev.stopPropagation());
+                    colNr.appendChild(a);
+                } else {
+                    colNr.textContent = "—";
+                }
 
                 const colName = document.createElement("span");
                 colName.className = "list-col-name";
@@ -361,10 +379,4 @@
 
     // Boards-Liste entfernt
 
-    // Boards-Hinzufügen/Entfernen entfernt
-
-    main();
-</script>
-
-</body>
-</html>
+    // Boards-Hinzufügen/
