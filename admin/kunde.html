@@ -54,7 +54,8 @@
     <!-- Formular & NFC-Liste rechts -->
     <div class="form-wrapper">
         <h2>Kunde bearbeiten / anlegen</h2>
-        <!-- Status wird jetzt oben in der Kundenliste angezeigt -->
+        <!-- Status-Anzeige für Aktionen (Speichern/Laden/Fehler) -->
+        <div id="kundenStatus" class="status-bar" aria-live="polite" style="margin-bottom: 1rem;"></div>
 
         <form id="kundenForm">
 
@@ -120,7 +121,11 @@
             </div>
                             <!-- Spalte 3: unabhängig von Spalten 1+2 -->
                 <div style="flex:0 0 32%; min-width:280px;">
-                    <!-- Spalte 3 -->                    
+                    <!-- Spalte 3 -->
+                    <p>
+                        <label for="kundenDocId"><strong>ID (Firestore Dokument-ID):</strong></label>
+                        <input type="text" id="kundenDocId" readonly placeholder="Wird nach Auswahl/Speichern angezeigt">
+                    </p>
                 </div>
             </div>
 
@@ -168,6 +173,27 @@
                 currentKundenId = null;
                 status.textContent = "Neuer Kunde – bitte Daten eingeben.";
             });
+
+            // Klick auf die ID kopiert sie in die Zwischenablage
+            const idField = document.getElementById("kundenDocId");
+            if (idField) {
+                const copyId = async () => {
+                    const val = idField.value.trim();
+                    if (!val) return;
+                    try {
+                        await navigator.clipboard.writeText(val);
+                        status.textContent = "Dokument-ID kopiert.";
+                    } catch {
+                        // Fallback: Text selektieren, Nutzer kann STRG+C drücken
+                        idField.focus();
+                        idField.select();
+                        status.textContent = "Dokument-ID markiert – bitte STRG+C drücken.";
+                    }
+                };
+                idField.addEventListener("click", copyId);
+                const idLabel = document.querySelector("label[for='kundenDocId']");
+                if (idLabel) idLabel.addEventListener("click", copyId);
+            }
 
             // Boards-Funktionalität entfernt
 
@@ -313,6 +339,9 @@
             const data = snap.data();
             currentKundenId = kundenId;
 
+            const idField = document.getElementById("kundenDocId");
+            if (idField) idField.value = currentKundenId || "";
+
                 const uidInput = document.getElementById("kundenUid");
                 uidInput.value = data.UID || "";
                 uidInput.readOnly = false;
@@ -336,6 +365,8 @@
 
     function clearForm() {
         document.getElementById("kundenForm").reset();
+        const idField = document.getElementById("kundenDocId");
+        if (idField) idField.value = "";
     }
 
     // Boards-Liste entfernt
@@ -382,8 +413,6 @@
         }
 
         try {
-            status.textContent = "Speichere Kunde...";
-
             let kundenDocId = currentKundenId;
 
             const kundenData = {
@@ -409,8 +438,9 @@
             }
 
             currentKundenId = kundenDocId;
+            const idField = document.getElementById("kundenDocId");
+            if (idField) idField.value = currentKundenId || "";
 
-            status.textContent = "Kunde erfolgreich gespeichert.";
             await loadKundenListe();
             
             // Boards-Funktionalität entfernt

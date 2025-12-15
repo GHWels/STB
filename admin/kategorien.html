@@ -364,4 +364,28 @@
 </script>
 
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const label = Array.from(document.querySelectorAll('label'))
+            .find(l => l.textContent && l.textContent.trim().startsWith('ID (Firestore Dokument-ID)'));
+        if (!label) return;
+        const forId = label.getAttribute('for');
+        const input = forId ? document.getElementById(forId) : null;
+        const copy = async () => {
+            const val = input && input.value ? input.value.trim() : '';
+            if (!val) return;
+            try {
+                await navigator.clipboard.writeText(val);
+                const status = document.getElementById('kategorienStatus') || document.getElementById('kundenStatus');
+                if (status) status.textContent = 'Dokument-ID kopiert.';
+            } catch {
+                if (input) { input.focus(); input.select(); }
+                const status = document.getElementById('kategorienStatus') || document.getElementById('kundenStatus');
+                if (status) status.textContent = 'Dokument-ID markiert – bitte STRG+C drücken.';
+            }
+        };
+        label.addEventListener('click', copy);
+        if (input) input.addEventListener('click', copy);
+    });
+</script>
 </html>
