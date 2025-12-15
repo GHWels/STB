@@ -21,12 +21,8 @@
     <nav class="navbar-right">
         <ul class="nav-list">
             <li><a href="index.html">Start</a></li>
-            <li><a href="artikel.html">Artikel</a></li>
             <li><a href="kunde.html" class="active">Kunden</a></li>
-            <li><a href="event.html">Events</a></li>
             <li><a href="board.html">Board</a></li>
-            <li><a href="nfc_zuordnen.html">NFC zuordnen</a></li>
-            <li><a href="kategorien.html">Kategorien</a></li>
         </ul>
     </nav>
 </header>
@@ -65,7 +61,7 @@
                 <div>
                     <p>
                         <label for="website"><strong>WEB-Seite:</strong></label>
-                        <input type="url" id="website" placeholder="https://www.herbsthofer.at" required>
+                        <input type="url" id="website" placeholder="https://www.herbsthofer.at">
                     </p>
                     <p>
                         <label for="kundenName"><strong>Name:</strong></label>
@@ -79,10 +75,6 @@
                     <p>
                         <label for="plz"><strong>PLZ:</strong></label>
                         <input type="text" id="plz">
-                    </p>
-                    <p>
-                        <label for="kundenUid"><strong>UID-Nr:</strong></label>
-                        <input type="text" id="kundenUid" placeholder="z.B. ATU12345678" class="input-full-width">
                     </p>
                 </div>
 
@@ -163,6 +155,7 @@
             db = getFirestore(app);
 
             await loadKundenListe();
+            status.textContent = "";
 
             const form = document.getElementById("kundenForm");
             form.addEventListener("submit", onSaveKunde);
@@ -340,10 +333,6 @@
 
             const idField = document.getElementById("kundenDocId");
             if (idField) idField.value = currentKundenId || "";
-
-                const uidInput = document.getElementById("kundenUid");
-                uidInput.value = data.UID || "";
-                uidInput.readOnly = false;
             document.getElementById("kundenName").value = data.Name || "";
             document.getElementById("kurzName").value   = (data.KurzName || "");
             document.getElementById("strasse").value    = data.Strasse || "";
@@ -378,7 +367,6 @@
         e.preventDefault();
         const status = document.getElementById("kundenStatus");
 
-        const kundenUid = document.getElementById("kundenUid").value.trim();
         const kundenName = document.getElementById("kundenName").value.trim();
         const kurzName   = document.getElementById("kurzName").value.trim();
         const strasse    = document.getElementById("strasse").value.trim();
@@ -415,7 +403,6 @@
             let kundenDocId = currentKundenId;
 
             const kundenData = {
-                UID: kundenUid || null,
                 Name: kundenName,
                 KurzName: kurzName || null,
                 Strasse: strasse || null,
@@ -441,6 +428,7 @@
             if (idField) idField.value = currentKundenId || "";
 
             await loadKundenListe();
+            status.textContent = "Kunde gespeichert.";
             
             // Boards-Funktionalität entfernt
         } catch (err) {

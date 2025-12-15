@@ -21,12 +21,8 @@
     <nav class="navbar-right">
         <ul class="nav-list">
             <li><a href="index.html">Start</a></li>
-            <li><a href="lieferant.html">Lieferanten</a></li>
-            <li><a href="artikel.html">Artikel</a></li>
             <li><a href="kunde.html">Kunden</a></li>
-            <li><a href="event.html">Events</a></li>
             <li><a href="board.html" class="active">Boards</a></li>
-            <li><a href="kategorien.html">Kategorien</a></li>
         </ul>
     </nav>
 </header>
@@ -53,50 +49,8 @@
 
     <!-- Formular + Visualisierung rechts -->
     <div class="form-wrapper">
-        <h2>Board & NFC-Eingabe: <span id="currentBoardIdDisplay"></span></h2>
-
-        <form id="boardForm">
-            <div class="form-grid-3">
-                <div>
-                    <p>
-                        <label for="anzahlNfc"><strong>Anzahl NFC-Codes:</strong></label>
-                        <select id="anzahlNfc" required>
-                            <option value="">-- bitte wählen --</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                        </select>
-                    </p>
-                </div>
-                <div>
-                    <!-- CreatedAt nur intern, nicht editierbar -->
-                </div>
-            </div>
-
-            <p class="form-hint">
-                Die NFC-Codes werden direkt in der Board-Ansicht unten in den Positionen 1…N eingetragen.<br>
-                Das Board kann nur gespeichert werden, wenn alle Felder befüllt sind.
-            </p>
-        </form>
-
-        <div class="board-visual-wrapper">
-
-            <div id="boardVisual" class="board-visual">
-                <div>(Bitte ein Board links auswählen oder neu anlegen und Anzahl NFC setzen)</div>
-            </div>
-        </div>
 
         <p id="status"></p>
-        
-        <button id="btnSaveBoard" type="submit" form="boardForm">Board speichern</button>
-        <button id="btnDeleteBoard" type="button" disabled>Board löschen</button>
     </div>
 
 </div>
@@ -135,22 +89,29 @@
             await loadBoardsListe();
 
             const form = document.getElementById("boardForm");
-            form.addEventListener("submit", onSaveBoard);
+            if (form) {
+                form.addEventListener("submit", onSaveBoard);
+            }
 
-            btnNeu.addEventListener("click", () => {
-                clearForm();
-                currentBoardId = null;
-                btnDelete.disabled = true;
-                anzahlSelect.disabled = false;
-                updateBoardMeta(null);
-                renderBoardVisual(0, []);
-                status.textContent = "Neues Board – bitte Anzahl NFC-Codes wählen.";
-                status.className = "";
-            });
+            if (btnNeu) {
+                btnNeu.addEventListener("click", () => {
+                    clearForm();
+                    currentBoardId = null;
+                    if (btnDelete) btnDelete.disabled = true;
+                    if (anzahlSelect) anzahlSelect.disabled = false;
+                    updateBoardMeta(null);
+                    renderBoardVisual(0, []);
+                    status.textContent = "Ansicht zurückgesetzt.";
+                    status.className = "";
+                });
+            }
 
-            btnDelete.addEventListener("click", onDeleteBoard);
-
-            anzahlSelect.addEventListener("change", onAnzahlNfcChanged);
+            if (btnDelete) {
+                btnDelete.addEventListener("click", onDeleteBoard);
+            }
+            if (anzahlSelect) {
+                anzahlSelect.addEventListener("change", onAnzahlNfcChanged);
+            }
 
         } catch (err) {
             console.error(err);
@@ -244,9 +205,11 @@
 
             document.getElementById("currentBoardIdDisplay").textContent = data.BoardID || boardId;
             const anzahlNfc = data.AnzahlNFC ?? 0;
-            anzahlSelect.value = anzahlNfc ? String(anzahlNfc) : "";
-            anzahlSelect.disabled = true; // Nach dem Speichern nicht mehr änderbar
-            btnDelete.disabled = false;
+            if (anzahlSelect) {
+                anzahlSelect.value = anzahlNfc ? String(anzahlNfc) : "";
+                anzahlSelect.disabled = true;
+            }
+            if (btnDelete) btnDelete.disabled = false;
 
             // NFC-Codes aus BoardNFC Collection laden
             const nfcQuery = query(collection(db, "BoardNFC"), where("BoardID", "==", boardId));
@@ -526,7 +489,6 @@
         visual.innerHTML = "";
 
         if (!anzahlNfc || anzahlNfc < 1) {
-            visual.innerHTML = "<div>Bitte Anzahl NFC-Codes auswählen. Die Positionen erscheinen dann hier.</div>";
             return;
         }
 
