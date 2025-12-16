@@ -1,0 +1,110 @@
+<!-- -*- coding: utf-8 -*- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTastingBoard – Bewertung</title>
+
+    <link rel="stylesheet" href="../admin/css/style.css?v=20251216">
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../assets/STB-180x180.png">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="navbar-left">
+        <img src="../assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
+        <span class="navbar-title">SmartTastingBoard – Bewertung</span>
+    </div>
+</header>
+
+<div class="main-layout">
+
+    <div class="form-wrapper">
+        <div id="bewertungStatus" class="status-bar" aria-live="polite"></div>
+
+        <form id="bewertungForm">
+            <div class="form-group">
+                <label for="userName" style="display:block; margin-bottom:0.25rem;"><strong>Ihr Name:</strong>
+                    <span id="nameStatus" class="name-status"></span>
+                </label>
+                <div style="display:flex; flex-direction:row; align-items:center; gap:0.25rem; width:100%;">
+                    <input type="text" id="userName" placeholder="z.B. Goofy / Mausi / Geniesser" class="name-input" style="flex:1; min-width:0;">
+                    <button type="button" id="saveNameBtn" class="btn-primary">Speichern</button>
+                </div>
+            </div>
+            <p>
+                <label for="boardId"><strong>BoardID:</strong></label>
+                <input type="text" id="boardId" readonly placeholder="Wird beim Öffnen gesetzt">
+            </p>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    // Liest den URL-Parameter "Board" und zeigt ihn im Feld BoardID an
+    document.addEventListener('DOMContentLoaded', () => {
+        const status = document.getElementById('bewertungStatus');
+        const nameStatus = document.getElementById('nameStatus');
+        const boardInput = document.getElementById('boardId');
+        const userNameInput = document.getElementById('userName');
+        const saveBtn = document.getElementById('saveNameBtn');
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const boardParam = params.get('Board');
+            if (boardParam && boardInput) {
+                boardInput.value = boardParam;
+            } else {
+                boardInput.value = 'Kein gültiger Code gefunden';
+            }
+
+            // Name aus localStorage vorbefüllen
+            const storedName = localStorage.getItem('bewertungUserName');
+            if (storedName && userNameInput) {
+                userNameInput.value = storedName;
+            }
+
+            // Speichern-Button
+            if (saveBtn && userNameInput) {
+                saveBtn.addEventListener('click', () => {
+                    const name = (userNameInput.value || '').trim();
+                    if (!name) {
+                        if (nameStatus) {
+                            nameStatus.textContent = 'Bitte Namen eingeben';
+                            nameStatus.classList.remove('success');
+                            nameStatus.classList.add('error');
+                            setTimeout(() => { nameStatus.textContent = ''; nameStatus.classList.remove('error'); }, 3000);
+                        }
+                        return;
+                    }
+                    try {
+                        localStorage.setItem('bewertungUserName', name);
+                        if (nameStatus) {
+                            nameStatus.textContent = '✓ Name gespeichert';
+                            nameStatus.classList.remove('error');
+                            nameStatus.classList.add('success');
+                            setTimeout(() => { nameStatus.textContent = ''; nameStatus.classList.remove('success'); }, 3000);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        if (nameStatus) {
+                            nameStatus.textContent = '✗ Fehler beim Speichern';
+                            nameStatus.classList.remove('success');
+                            nameStatus.classList.add('error');
+                            setTimeout(() => { nameStatus.textContent = ''; nameStatus.classList.remove('error'); }, 3000);
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.error(err);
+            if (status) status.textContent = 'Fehler beim Lesen des Parameters: ' + (err.message || err);
+        }
+    });
+</script>
+
+</body>
+</html>
