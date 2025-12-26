@@ -4,20 +4,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartTastingBoard – Bewertung</title>
+    <title>STB – Bewertung</title>
 
-    <link rel="stylesheet" href="../admin/css/style.css?v=20251216">
+    <link rel="stylesheet" href="../admin/css/style.css?v=20251224">
     <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="../assets/STB-180x180.png">
 </head>
+<script type="module" src="./firebase-init.js"></script>
+
 
 <body>
+
+<!-- Menü-Icon und Dropdown-Menü -->
+
 
 <header class="navbar">
     <div class="navbar-left">
         <img src="../assets/STB-180x180.png" alt="SmartTastingBoard Logo" class="navbar-logo">
-        <span class="navbar-title">SmartTastingBoard – Bewertung</span>
+        <span class="navbar-title">Bewertung</span>
     </div>
+        <div class="navbar-menu">
+            <button class="menu-icon-btn" id="menuToggleBtn" aria-label="Menü öffnen" type="button">
+                <span class="menu-icon-symbol">&#9776;</span>
+            </button>
+            <div class="menu-dropdown" id="menuDropdown" role="menu" aria-labelledby="menuToggleBtn">
+                <button class="menu-dropdown-btn" id="allDataDeleteBtn" role="menuitem" type="button">Alle Daten löschen</button>
+            </div>
+        </div>
 </header>
 
 <div class="main-layout">
@@ -27,18 +40,34 @@
 
         <form id="bewertungForm">
             <div class="form-group">
-                <label for="userName" style="display:block; margin-bottom:0.25rem;"><strong>Ihr Name:</strong>
+                <label for="userName" class="form-label"><strong>Ihr Name:</strong>
                     <span id="nameStatus" class="name-status"></span>
                 </label>
-                <div style="display:flex; flex-direction:row; align-items:center; gap:0.25rem; width:100%;">
-                    <input type="text" id="userName" placeholder="z.B. Goofy / Mausi / Geniesser" class="name-input" style="flex:1; min-width:0;">
+                <div class="name-input-row">
+                    <input type="text" id="userName" placeholder="z.B. Goofy / Mausi / Geniesser" class="input-wide">
                     <button type="button" id="saveNameBtn" class="btn-primary">Speichern</button>
                 </div>
             </div>
-            <p>
-                <label for="boardId"><strong>BoardID:</strong></label>
-                <input type="text" id="boardId" readonly placeholder="Wird beim Öffnen gesetzt">
-            </p>
+            <div class="form-group">
+                <label for="boardId" class="form-label"><strong>BoardID:</strong></label>
+                <input type="text" id="boardId" readonly placeholder="Wird beim Öffnen gesetzt" class="input-wide">
+            </div>
+            <div class="form-group">
+                <label for="kundenIdField" class="form-label"><strong>KundenID:</strong></label>
+                <input type="text" id="kundenIdField" readonly placeholder="KundenID wird geladen..." class="input-wide">
+            </div>
+            <div class="form-group">
+                <label for="veranstalterField" class="form-label"><strong>Veranstalter:</strong></label>
+                <input type="text" id="veranstalterField" readonly placeholder="Veranstalter wird geladen..." class="input-wide">
+            </div>
+            <div class="form-group">
+                <label for="eventDt" class="form-label"><strong>Event Datum:</strong></label>
+                <input type="text" id="eventDt" readonly placeholder="Event wird geladen..." class="input-wide">
+            </div>
+            <div class="form-group">
+                <label for="eventField" class="form-label"><strong>Event:</strong></label>
+                <input type="text" id="eventField" readonly placeholder="Event wird geladen..." class="input-wide">
+            </div>
         </form>
     </div>
 
@@ -46,12 +75,21 @@
 
 <script>
     // Liest den URL-Parameter "Board" und zeigt ihn im Feld BoardID an
-    document.addEventListener('DOMContentLoaded', () => {
-        const status = document.getElementById('bewertungStatus');
-        const nameStatus = document.getElementById('nameStatus');
-        const boardInput = document.getElementById('boardId');
-        const userNameInput = document.getElementById('userName');
-        const saveBtn = document.getElementById('saveNameBtn');
+    // Hauptscript als Modul, damit dynamic import funktioniert
+</script>
+<script type="module">
+    // Event field lookup logic
+    const userNameInput = document.getElementById('userName');
+    const boardInput = document.getElementById('boardId');
+    const kundenIdField = document.getElementById('kundenIdField');
+    const veranstalterField = document.getElementById('veranstalterField');
+    const eventDtField = document.getElementById('eventDt');
+    const eventField = document.getElementById('eventField');
+    const status = document.getElementById('bewertungStatus');
+    const nameStatus = document.getElementById('nameStatus');
+    const saveBtn = document.getElementById('saveNameBtn');
+
+    import('./api-links.js').then(({ API_KUNDEN_BY_BOARDNFC }) => {
         try {
             const params = new URLSearchParams(window.location.search);
             const boardParam = params.get('Board');
@@ -61,15 +99,57 @@
                 boardInput.value = 'Kein gültiger Code gefunden';
             }
 
+            // KundenID per API abfragen, wenn BoardID vorhanden
+            if (boardParam && kundenIdField) {
+                kundenIdField.value = 'Lade KundenID...';
+                fetch(API_KUNDEN_BY_BOARDNFC(boardParam))
+                    .then(res => res.json())
+                    .then(data => {
+                        kundenIdField.value = data.documentId;
+                        veranstalterField.value = data.KurzName || 'Unbekannt';
+                        // Letztes Event abfragen
+                        eventField.value = data.documentId;
+                        import('./api-links.js').then(({ API_LETZTES_EVENT }) => {
+                            const url = API_LETZTES_EVENT(data.documentId);
+                            console.log('Fetching letztes Event:', url);
+                            fetch(url)
+                                .then(res => res.json())
+                                .then(eventData => {
+                                    console.log('Event API data:', eventData);
+                                    if (eventData && eventData.eventNotiz) {
+                                        eventDtField.value = eventData.eventDt || 'Unbekannt';
+                                        eventField.value = eventData.eventNotiz;
+                                    } else {
+                                        eventField.value = 'Kein Event gefunden';
+                                    }
+                                })
+                                .catch((err) => {
+                                    console.error('Event API error:', err);
+                                    eventDtField.value = 'Fehler bei Abfrage';
+                                });
+                        });
+                    })
+                    .catch(() => {
+                        kundenIdField.value = 'Fehler bei Abfrage';
+                    });
+            }
+
             // Name aus localStorage vorbefüllen
             const storedName = localStorage.getItem('bewertungUserName');
             if (storedName && userNameInput) {
                 userNameInput.value = storedName;
             }
 
+            // Hide Speichern button only if name field has value on page load
+            if (userNameInput.value.trim()) {
+                saveBtn.style.display = 'none';
+            } else {
+                saveBtn.style.display = '';
+            }
+
             // Speichern-Button
             if (saveBtn && userNameInput) {
-                saveBtn.addEventListener('click', () => {
+                saveBtn.addEventListener('click', async () => {
                     const name = (userNameInput.value || '').trim();
                     if (!name) {
                         if (nameStatus) {
@@ -82,12 +162,23 @@
                     }
                     try {
                         localStorage.setItem('bewertungUserName', name);
+                        // Save to Firestore
+                        import('./firebase-init.js').then(async (firebase) => {
+                            const boardID = boardInput.value || '';
+                            const docID = name + '_' + boardID;
+                            await firebase.setDoc(firebase.doc(firebase.db, 'Users', docID), {
+                                documentID: docID,
+                                name: name,
+                                boardID: boardID
+                            });
+                        });
                         if (nameStatus) {
                             nameStatus.textContent = '✓ Name gespeichert';
                             nameStatus.classList.remove('error');
                             nameStatus.classList.add('success');
                             setTimeout(() => { nameStatus.textContent = ''; nameStatus.classList.remove('success'); }, 3000);
                         }
+                        saveBtn.style.display = 'none';
                     } catch (err) {
                         console.error(err);
                         if (nameStatus) {
@@ -104,7 +195,27 @@
             if (status) status.textContent = 'Fehler beim Lesen des Parameters: ' + (err.message || err);
         }
     });
-</script>
 
+    // Dropdown menu logic
+    document.addEventListener('DOMContentLoaded', () => {
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const menuDropdown = document.getElementById('menuDropdown');
+        if (menuToggleBtn && menuDropdown) {
+            menuToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = menuDropdown.style.display === 'block';
+                menuDropdown.style.display = isOpen ? 'none' : 'block';
+            });
+            document.addEventListener('click', (e) => {
+                if (!menuDropdown.contains(e.target) && e.target !== menuToggleBtn) {
+                    menuDropdown.style.display = 'none';
+                }
+            });
+            menuDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+    });
+</script>
 </body>
 </html>

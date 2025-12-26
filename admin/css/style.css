@@ -1,3 +1,26 @@
+/* Sterne-Bewertung */
+.star-rating {
+    direction: rtl;
+    display: flex;
+    gap: 0.2em;
+    font-size: 2rem;
+    justify-content: flex-start;
+}
+.star-rating input[type="radio"] {
+    display: none;
+}
+.star-rating label {
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.star-rating input[type="radio"]:checked ~ label {
+    color: #f5b301;
+}
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #f5b301;
+}
 /* Jahrgang-Eingabefeld soll so breit sein wie Kategorie-Dropdown */
 .input-kategorie-width {
     max-width: 220px;
